@@ -1,0 +1,25 @@
+/* ZCNA — "fibre optic": deep teal glass, signal teal and lime; glowing fibre-strand motif. */
+:root {
+  --bg: #f1f7f6; --surface: #ffffff; --surface-2: #e2eeeb; --ink: #0b2a2c; --ink-2: #456568; --ink-3: #587473; --line: #d1e2de;
+  --accent: #0a7b6a; --accent-ink: #ffffff; --accent-soft: #d8f1ea; --accent-2: #447b0e; --accent-2-soft: #e5f1d6;
+  --good: #1d7a4b; --good-soft: #dcf1e4; --bad: #b42a2a; --bad-soft: #f9e2e0; --warn: #b77800; --warn-soft: #fbefd3; --on-status: #ffffff;
+  --hero-bg: #062a2c; --hero-ink: #eefaf7; --hero-ink-2: #9cc4bf; --hero-accent: #2fd6b5;
+  --motif: repeating-linear-gradient(115deg, transparent 0 34px, rgba(47,214,181,.10) 34px 35px, transparent 35px 70px), radial-gradient(circle at 80% 30%, rgba(47,214,181,.22), transparent 45%), radial-gradient(circle at 15% 85%, rgba(155,225,93,.14), transparent 40%);
+  --sg-line: #1d4a4b; --sg-accent: #2fd6b5; --sg-accent-2: #9be15d; --sg-node: #082f31; --sg-ink: #eefaf7; --sg-ink-2: #9cc4bf;
+  --f-display: "Sora", "IBM Plex Sans", "Segoe UI", sans-serif; --f-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif; --f-mono: "IBM Plex Mono", Consolas, monospace;
+  --radius: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+  --bg: #061416; --surface: #0c1f21; --surface-2: #132c2e; --ink: #e3f3f0; --ink-2: #9cc4bf; --ink-3: #658e8b; --line: #1c3a3b;
+  --accent: #2fd6b5; --accent-ink: #03201b; --accent-soft: #0e3430; --accent-2: #9be15d; --accent-2-soft: #1d3110;
+  --good: #5bd39a; --good-soft: #10301f; --bad: #ff7a7a; --bad-soft: #3a1616; --warn: #f2b84c; --warn-soft: #3a2c10; --on-status: #061416;
+  color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #061416; --surface: #0c1f21; --surface-2: #132c2e; --ink: #e3f3f0; --ink-2: #9cc4bf; --ink-3: #658e8b; --line: #1c3a3b;
+  --accent: #2fd6b5; --accent-ink: #03201b; --accent-soft: #0e3430; --accent-2: #9be15d; --accent-2-soft: #1d3110;
+  --good: #5bd39a; --good-soft: #10301f; --bad: #ff7a7a; --bad-soft: #3a1616; --warn: #f2b84c; --warn-soft: #3a2c10; --on-status: #061416;
+  color-scheme: dark;
+}
