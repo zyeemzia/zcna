@@ -29,26 +29,69 @@ TRACK.modules.push({
      "text": "In the **ZCNA Packet Journey** the packet has a wire, an address, a switch path and a route. Now it needs **services**. The first two it meets are almost invisible when they work and painfully obvious when they fail: **DHCP** gives a host its IP settings, and **DNS** turns the name a user types into an address the network can route. A large share of \"the network is down\" tickets are really DHCP or DNS problems, so an associate engineer must be able to prove quickly whether they are working."
     },
     {
-     "type": "flow",
-     "items": [
+     "type": "sequence",
+     "title": "DORA through a relay — a client in VLAN 30 asks for an address",
+     "actors": [
+      "Client (VLAN 30)",
+      "R2 relay 192.168.30.1",
+      "DHCP server 10.0.50.10"
+     ],
+     "steps": [
       {
-       "label": "Discover",
-       "text": "Client → broadcast. Source 0.0.0.0:68, destination 255.255.255.255:67. \"Is there a DHCP server out there?\""
+       "from": 0,
+       "to": 1,
+       "label": "Discover (broadcast)",
+       "note": "0.0.0.0:68 → 255.255.255.255:67"
       },
       {
-       "label": "Offer",
-       "text": "Server → client. Proposes 192.168.10.21/24, gateway, DNS servers and a lease time."
+       "from": 1,
+       "to": 2,
+       "label": "Discover, unicast",
+       "note": "giaddr = 192.168.30.1"
       },
       {
-       "label": "Request",
-       "text": "Client → broadcast. \"I accept the offer from this server\" — broadcast so any other servers that made offers withdraw them."
+       "from": 2,
+       "to": 1,
+       "label": "Offer 192.168.30.44",
+       "reply": true
       },
       {
+       "from": 1,
+       "to": 0,
+       "label": "Offer: IP, gateway, DNS",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "Request (broadcast)",
+       "note": "accepts this server's offer"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "Request, unicast"
+      },
+      {
+       "from": 2,
+       "to": 1,
        "label": "Ack",
-       "text": "Server → client. Confirms the lease; the client configures the address and (on most systems) probes it to detect a duplicate before using it."
+       "reply": true
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "Ack: lease confirmed",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 0,
+       "label": "Check for duplicates, then use it",
+       "note": "renew at 50% of the lease"
       }
      ],
-     "title": "DORA — a client joins VLAN 10 and asks for an address"
+     "caption": "Discover and Request are broadcasts, so the router relays them as unicast and fills in giaddr; the server uses giaddr to pick the 192.168.30.0/24 scope. Broadcasting the Request also tells any other server that its offer was declined."
     },
     {
      "type": "keypoints",
@@ -129,6 +172,70 @@ TRACK.modules.push({
      "text": "**DNS** is a distributed, hierarchical database. A host asks its configured **resolver** (often a local DNS server) for `portal.branch.example`. If the resolver has no cached answer it performs **recursive resolution**: it asks a **root** server, which refers it to the **TLD** servers for `.example`, which refer it to the **authoritative** servers for `branch.example`, which return the answer. The resolver caches the result for the record's **TTL** and replies to the host."
     },
     {
+     "type": "sequence",
+     "title": "Recursive resolution of portal.branch.example",
+     "actors": [
+      "Host",
+      "Resolver",
+      "Root server",
+      "TLD .example",
+      "Authoritative"
+     ],
+     "steps": [
+      {
+       "from": 0,
+       "to": 1,
+       "label": "Query: A record",
+       "note": "portal.branch.example"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "Query: A record"
+      },
+      {
+       "from": 2,
+       "to": 1,
+       "label": "Referral: .example",
+       "reply": true
+      },
+      {
+       "from": 1,
+       "to": 3,
+       "label": "Query: A record"
+      },
+      {
+       "from": 3,
+       "to": 1,
+       "label": "Referral: branch.example servers",
+       "reply": true
+      },
+      {
+       "from": 1,
+       "to": 4,
+       "label": "Query: A record"
+      },
+      {
+       "from": 4,
+       "to": 1,
+       "label": "A 192.168.10.80, TTL 3600",
+       "reply": true
+      },
+      {
+       "from": 1,
+       "to": 1,
+       "label": "Cache the answer for its TTL"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "A 192.168.10.80",
+       "reply": true
+      }
+     ],
+     "caption": "The host asks once; the resolver walks the hierarchy and caches every answer for its TTL, so the next lookup for the same name is answered locally in milliseconds."
+    },
+    {
      "type": "table",
      "head": [
       "Record",
@@ -196,9 +303,9 @@ TRACK.modules.push({
     },
     {
      "type": "callout",
-     "kind": "pro",
-     "text": "DHCP: UDP 67 (server) and 68 (client). DNS: UDP 53 for most queries, **TCP 53** for zone transfers and large responses. Firewalls that allow only UDP 53 can break DNS in subtle ways.",
-     "title": "Ports to remember"
+     "kind": "insight",
+     "title": "Ports, IPv6 and modern DNS",
+     "text": "DHCP: UDP 67 (server) and 68 (client). DNS: UDP 53 for most queries, **TCP 53** for zone transfers and large responses. Firewalls that allow only UDP 53 can break DNS in subtle ways. IPv6 hosts use **DHCPv6** on UDP 546 (client) and 547 (server) with four messages — Solicit, Advertise, Request, Reply — and a router relays them with `ipv6 dhcp relay destination <server-address>`; DNS servers can also arrive in the RA (RDNSS). On the DNS side, many clients now send queries **encrypted** (DNS over TLS or HTTPS), and **DNSSEC** lets resolvers check that answers were not forged. Both change what you can see in a capture and which firewall rules matter."
     },
     {
      "type": "scenario",
@@ -269,6 +376,17 @@ TRACK.modules.push({
       ]
      ],
      "rows": 6
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "DHCP is DORA: Discover and Request are broadcasts, Offer and Ack come from the server.",
+      "A relay (`ip helper-address`) goes on the client-facing interface and adds giaddr so the server picks the right scope.",
+      "A 169.254.x.x address means no DHCP answer — follow the packet: port VLAN, trunk, helper, scope.",
+      "DNS resolution walks root → TLD → authoritative and is cached for the TTL; UDP 53 plus TCP 53 for large answers and transfers.",
+      "IPv6 uses DHCPv6 (UDP 546/547) or RA options for the same jobs."
+     ]
     },
     {
      "type": "quiz",
@@ -409,6 +527,114 @@ TRACK.modules.push({
       }
      ],
      "title": "PAT in action — one public address, many hosts"
+    },
+    {
+     "type": "topology",
+     "title": "Inside, outside and the edge router",
+     "nodes": [
+      {
+       "id": "pc1",
+       "kind": "host",
+       "label": "PC",
+       "sub": "192.168.10.21",
+       "x": 0,
+       "y": 2
+      },
+      {
+       "id": "pc2",
+       "kind": "host",
+       "label": "PC",
+       "sub": "192.168.10.37",
+       "x": 0,
+       "y": 4
+      },
+      {
+       "id": "srv",
+       "kind": "server",
+       "label": "Booking server",
+       "sub": "192.168.10.10 ↔ 203.0.113.2",
+       "x": 2,
+       "y": 5
+      },
+      {
+       "id": "sw",
+       "kind": "switch",
+       "label": "LAN switch",
+       "x": 2,
+       "y": 3
+      },
+      {
+       "id": "edge",
+       "kind": "router",
+       "label": "EDGE1",
+       "sub": "PAT + static NAT",
+       "x": 4,
+       "y": 3
+      },
+      {
+       "id": "inet",
+       "kind": "internet",
+       "label": "Internet",
+       "x": 6,
+       "y": 3
+      },
+      {
+       "id": "ext",
+       "kind": "server",
+       "label": "Web server",
+       "sub": "198.51.100.80",
+       "x": 6,
+       "y": 1
+      }
+     ],
+     "links": [
+      {
+       "a": "pc1",
+       "b": "sw"
+      },
+      {
+       "a": "pc2",
+       "b": "sw"
+      },
+      {
+       "a": "srv",
+       "b": "sw"
+      },
+      {
+       "a": "sw",
+       "b": "edge",
+       "label": "Gi0/1 · inside"
+      },
+      {
+       "a": "edge",
+       "b": "inet",
+       "label": "Gi0/0 · outside .1/29"
+      },
+      {
+       "a": "inet",
+       "b": "ext",
+       "label": "HTTPS"
+      }
+     ],
+     "zones": [
+      {
+       "label": "Inside — RFC 1918",
+       "x": 0,
+       "y": 2,
+       "w": 3,
+       "h": 4,
+       "tone": "good"
+      },
+      {
+       "label": "Outside",
+       "x": 6,
+       "y": 1,
+       "w": 1,
+       "h": 3,
+       "tone": "warn"
+      }
+     ],
+     "caption": "Everything left of EDGE1 uses private addresses. Outbound, PAT rewrites the source to 203.0.113.1 plus a unique port; the static entry maps the booking server permanently to 203.0.113.2 so customers can reach it."
     },
     {
      "type": "compare",
@@ -564,6 +790,16 @@ TRACK.modules.push({
      "rows": 6
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Inside/outside says whose address it is; local/global says from which side you are looking.",
+      "Static NAT publishes a server, dynamic NAT borrows from a pool, PAT (overload) shares one address using ports.",
+      "Every NAT needs three things: interface roles, a match (ACL) and a translation target.",
+      "NAT is not a firewall, and IPv6 normally needs no NAT — firewall policy does the protecting."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -662,6 +898,39 @@ TRACK.modules.push({
      "title": "The observability trio"
     },
     {
+     "type": "tree",
+     "title": "The NTP stratum hierarchy",
+     "root": {
+      "label": "Stratum 0",
+      "text": "GPS or atomic reference clock",
+      "children": [
+       {
+        "label": "Stratum 1",
+        "text": "Servers wired to the reference, e.g. 192.0.2.10",
+        "children": [
+         {
+          "label": "Stratum 2",
+          "text": "Internal NTP 10.0.99.123 and .124",
+          "children": [
+           {
+            "label": "Stratum 3: routers",
+            "text": "R1 and the WAN edge"
+           },
+           {
+            "label": "Stratum 3: switches and APs"
+           },
+           {
+            "label": "Stratum 3: servers and firewalls"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     "caption": "Each hop away from the reference clock adds one. R1 reports stratum 3 because it follows a stratum 2 internal server; stratum 16 means not synchronised at all."
+    },
+    {
      "type": "cli",
      "device": "R1 · IOS-style CLI",
      "lines": [
@@ -750,7 +1019,7 @@ TRACK.modules.push({
       "R1(config)# snmp-server enable traps"
      ],
      "title": "SNMPv3 with authentication and encryption",
-     "note": "SNMPv3 users are deliberately not shown in the running configuration. Store the passphrases in your password vault when you create them. `snmp-server enable traps` with no keywords turns on many trap types — in production, enable only the ones your monitoring actually uses."
+     "note": "SNMPv3 users are deliberately not shown in the running configuration. Store the passphrases in your password vault when you create them. `snmp-server enable traps` with no keywords turns on many trap types — in production, enable only the ones your monitoring actually uses. Where the platform offers them, prefer SHA-2 authentication (for example SHA-256) and AES-256 privacy over the older SHA-1 and AES-128 options."
     },
     {
      "type": "table",
@@ -826,6 +1095,12 @@ TRACK.modules.push({
      "note": "`logging trap notifications` sends levels 0–5 to the server. The message format is FACILITY-SEVERITY-MNEMONIC: `%LINK-3-UPDOWN` is facility LINK at severity 3 (Error)."
     },
     {
+     "type": "callout",
+     "kind": "pro",
+     "title": "Beyond polling: streaming telemetry",
+     "text": "SNMP polls every few minutes. Many current devices can also **stream** structured, YANG-modelled data (for example over gNMI) to a collector every few seconds, and send syslog over TLS instead of clear-text UDP. You will meet model-driven interfaces again in the Automate stage."
+    },
+    {
      "type": "scenario",
      "situation": "During an outage review, the firewall log shows a WAN link failure at 14:02:10, but the router log shows its interface going down at 14:06:45. Engineers are arguing about which device failed first. What should be fixed so this never happens again?",
      "options": [
@@ -851,6 +1126,16 @@ TRACK.modules.push({
       }
      ],
      "title": "Logs that don't line up"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "NTP (UDP 123) keeps every clock on one timeline; use two internal sources and authentication where possible.",
+      "SNMP polls on UDP 161 and receives traps/informs on UDP 162; choose SNMPv3 authPriv.",
+      "Syslog severity runs 0 (Emergency) to 7 (Debugging); a configured level sends itself and everything more severe.",
+      "Streaming telemetry and syslog over TLS are the modern complements to polling and UDP logging."
+     ]
     },
     {
      "type": "quiz",
@@ -938,7 +1223,7 @@ TRACK.modules.push({
       },
       {
        "title": "Generate keys",
-       "text": "Create an RSA key of at least 2048 bits; this enables the SSH server."
+       "text": "Create an RSA key of at least 2048 bits (3072 bits, or an elliptic-curve key where the platform supports it, is a stronger choice); this enables the SSH server."
       },
       {
        "title": "Force version 2",
@@ -1084,6 +1369,113 @@ TRACK.modules.push({
      "title": "In-band vs out-of-band management"
     },
     {
+     "type": "topology",
+     "title": "In-band and out-of-band paths to the same devices",
+     "nodes": [
+      {
+       "id": "adm",
+       "kind": "laptop",
+       "label": "Admin laptop",
+       "sub": "SSO with MFA",
+       "x": 0,
+       "y": 1
+      },
+      {
+       "id": "jmp",
+       "kind": "server",
+       "label": "Jump host",
+       "sub": "SSH, sessions logged",
+       "x": 2,
+       "y": 1
+      },
+      {
+       "id": "mg",
+       "kind": "switch",
+       "label": "Mgmt network",
+       "sub": "10.0.99.0/24",
+       "x": 4,
+       "y": 1
+      },
+      {
+       "id": "r1",
+       "kind": "router",
+       "label": "R1",
+       "x": 3,
+       "y": 3
+      },
+      {
+       "id": "sw1",
+       "kind": "switch",
+       "label": "SW1",
+       "x": 5,
+       "y": 3
+      },
+      {
+       "id": "cs",
+       "kind": "server",
+       "label": "Console server",
+       "x": 4,
+       "y": 5
+      },
+      {
+       "id": "lte",
+       "kind": "tower",
+       "label": "4G link",
+       "x": 6,
+       "y": 5
+      }
+     ],
+     "links": [
+      {
+       "a": "adm",
+       "b": "jmp",
+       "label": "SSH"
+      },
+      {
+       "a": "jmp",
+       "b": "mg"
+      },
+      {
+       "a": "mg",
+       "b": "r1",
+       "label": "in-band"
+      },
+      {
+       "a": "mg",
+       "b": "sw1",
+       "label": "in-band"
+      },
+      {
+       "a": "cs",
+       "b": "r1",
+       "label": "console",
+       "style": "dashed"
+      },
+      {
+       "a": "cs",
+       "b": "sw1",
+       "label": "console",
+       "style": "dashed"
+      },
+      {
+       "a": "cs",
+       "b": "lte",
+       "style": "wireless"
+      }
+     ],
+     "zones": [
+      {
+       "label": "Out-of-band",
+       "x": 4,
+       "y": 5,
+       "w": 3,
+       "h": 1,
+       "tone": "accent"
+      }
+     ],
+     "caption": "Day to day, engineers reach devices in-band through a logged jump host. If production breaks — or a bad change cuts access — the console server on its own 4G link still reaches every console port."
+    },
+    {
      "type": "scenario",
      "situation": "A junior engineer must copy a new image to 40 branch routers across the WAN. The only server ready is a TFTP server in head office. The WAN crosses an ISP network. What should the team do?",
      "options": [
@@ -1122,6 +1514,16 @@ TRACK.modules.push({
       "SNMPv3 authPriv only; no default or guessable community strings.",
       "Configuration backed up after every change, stored off-device.",
       "Console or out-of-band access tested this quarter."
+     ]
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "SSHv2 only: hostname, domain, a strong key, `transport input ssh`, a VTY ACL and an idle timeout.",
+      "Verify host-key fingerprints on first connection and investigate unexpected changes.",
+      "Move files with SCP, SFTP or HTTPS and check image hashes; keep TFTP to isolated management networks.",
+      "Put admin access behind central AAA with MFA, and keep tested out-of-band console access for when the network itself is down."
      ]
     },
     {
@@ -1276,6 +1678,22 @@ TRACK.modules.push({
      "title": "Where the marks live"
     },
     {
+     "type": "packet",
+     "title": "The DS field in the IP header (one byte)",
+     "width": 8,
+     "fields": [
+      {
+       "label": "DSCP",
+       "bits": 6
+      },
+      {
+       "label": "ECN",
+       "bits": 2
+      }
+     ],
+     "caption": "The former ToS byte: six DSCP bits carry the class (EF = 101110 binary = 46) and two ECN bits let routers signal congestion without dropping packets."
+    },
+    {
      "type": "table",
      "head": [
       "Traffic",
@@ -1396,6 +1814,29 @@ TRACK.modules.push({
      "note": "Three building blocks: **class-map** (what), **policy-map** (what to do), **service-policy** (where and in which direction). Queuing policies act on **output** — the point where congestion actually happens."
     },
     {
+     "type": "chart",
+     "title": "WAN-EDGE-OUT during congestion",
+     "kind": "bar",
+     "labels": [
+      "Voice (EF, priority)",
+      "Video (AF41)",
+      "Everything else"
+     ],
+     "series": [
+      {
+       "name": "Share of link",
+       "values": [
+        20,
+        30,
+        50
+       ]
+      }
+     ],
+     "unit": "%",
+     "yLabel": "Share of WAN link",
+     "caption": "These shares apply only while the WAN link is congested. Voice is always served first but is policed to 20% so it cannot starve the rest; class-default shares whatever remains fairly."
+    },
+    {
      "type": "callout",
      "kind": "pro",
      "text": "QoS chooses who suffers during congestion; it does not make a link faster. If a link is congested all day, the answer is more capacity or less traffic — QoS just keeps voice and critical apps usable until then.",
@@ -1488,6 +1929,16 @@ TRACK.modules.push({
     {
      "type": "reflection",
      "prompt": "Think of a network you use daily — a campus, office or home. Which IP service (DHCP, DNS, NAT, NTP, logging or QoS) do you think fails or misbehaves most often there, and how would you prove it with one command?"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "QoS manages bandwidth, delay, jitter and loss when a link is congested; it never creates capacity.",
+      "Mark once at the trust boundary: DSCP travels end to end, CoS is lost when the frame is routed.",
+      "EF 46 for voice, AF41 34 for interactive video, CS6 48 for network control; AF = 8 × class + 2 × drop.",
+      "Queue on output where congestion happens; shape toward a provider, police untrusted traffic."
+     ]
     },
     {
      "type": "quiz",
@@ -1732,6 +2183,53 @@ TRACK.modules.push({
      "title": "What weakens or distorts a signal"
     },
     {
+     "type": "chart",
+     "title": "Free-space path loss by band",
+     "kind": "line",
+     "labels": [
+      "1 m",
+      "5 m",
+      "10 m",
+      "20 m",
+      "40 m"
+     ],
+     "series": [
+      {
+       "name": "2.4 GHz (ch 6)",
+       "values": [
+        40.2,
+        54.2,
+        60.2,
+        66.2,
+        72.2
+       ]
+      },
+      {
+       "name": "5 GHz (ch 36)",
+       "values": [
+        46.7,
+        60.7,
+        66.7,
+        72.8,
+        78.8
+       ]
+      },
+      {
+       "name": "6 GHz (5975 MHz)",
+       "values": [
+        48.0,
+        62.0,
+        68.0,
+        74.0,
+        80.0
+       ]
+      }
+     ],
+     "unit": " dB",
+     "yLabel": "Path loss",
+     "caption": "Calculated free-space loss with isotropic antennas and nothing in the way: at any distance 5 GHz loses about 6.5 dB more than 2.4 GHz, and 6 GHz about 8 dB more. Walls, people and furniture add a lot on top, so real readings are always worse."
+    },
+    {
      "type": "cli",
      "device": "Linux laptop",
      "lines": [
@@ -1776,6 +2274,17 @@ TRACK.modules.push({
       }
      ],
      "title": "Slow Wi-Fi near the canteen"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Higher frequency means shorter range and weaker wall penetration: 2.4 GHz reaches furthest, 6 GHz offers the cleanest spectrum.",
+      "dBm is logarithmic: +3 dB doubles power, +10 dB multiplies it by ten.",
+      "SNR = signal − noise; voice wants about −67 dBm and 25 dB SNR.",
+      "In 2.4 GHz use only channels 1, 6 and 11 at 20 MHz.",
+      "Read signal, noise, utilisation and retries together — strong signal alone proves little."
+     ]
     },
     {
      "type": "quiz",
@@ -1910,6 +2419,53 @@ TRACK.modules.push({
      "title": "802.11 generations at concept level"
     },
     {
+     "type": "timeline",
+     "title": "Wi-Fi generations over time",
+     "items": [
+      {
+       "when": "1999",
+       "label": "802.11b and 802.11a",
+       "text": "11 Mbps at 2.4 GHz; 54 Mbps OFDM at 5 GHz"
+      },
+      {
+       "when": "2003",
+       "label": "802.11g",
+       "text": "OFDM speeds come to 2.4 GHz"
+      },
+      {
+       "when": "2009",
+       "label": "802.11n · Wi-Fi 4",
+       "text": "MIMO and 40 MHz channels"
+      },
+      {
+       "when": "2013",
+       "label": "802.11ac · Wi-Fi 5",
+       "text": "80/160 MHz channels, 256-QAM, downlink MU-MIMO"
+      },
+      {
+       "when": "2019",
+       "label": "802.11ax · Wi-Fi 6",
+       "text": "OFDMA, uplink MU-MIMO, target wake time"
+      },
+      {
+       "when": "2021",
+       "label": "Wi-Fi 6E",
+       "text": "802.11ax extended into 6 GHz where regulators allow it"
+      },
+      {
+       "when": "2024",
+       "label": "802.11be · Wi-Fi 7",
+       "text": "320 MHz channels, 4096-QAM, multi-link operation"
+      },
+      {
+       "when": "Next",
+       "label": "802.11bn · Wi-Fi 8",
+       "text": "In development with a focus on reliability rather than peak speed — check its current status"
+      }
+     ],
+     "caption": "Years show when products or certification arrived, which can differ from when the IEEE text was finalised. Each generation stays backward compatible on the bands it shares."
+    },
+    {
      "type": "callout",
      "kind": "warning",
      "text": "They assume the widest channel, every spatial stream and perfect conditions. A typical phone with two spatial streams in a busy office sees a small fraction. Design for **airtime and capacity**, not headline speed.",
@@ -2016,30 +2572,67 @@ TRACK.modules.push({
      "title": "Infrastructure vs ad hoc"
     },
     {
-     "type": "flow",
-     "items": [
+     "type": "sequence",
+     "title": "How a client joins a WPA2/WPA3-Personal WLAN",
+     "actors": [
+      "Client",
+      "AP (BSSID)",
+      "DHCP server"
+     ],
+     "steps": [
       {
-       "label": "Discover",
-       "text": "Listen for **beacons** or send **probe requests**; build a list of BSSIDs"
+       "from": 1,
+       "to": 0,
+       "label": "Beacon: SSID, security"
       },
       {
-       "label": "Authenticate (802.11)",
-       "text": "Open System exchange (or SAE for WPA3-Personal)"
+       "from": 0,
+       "to": 1,
+       "label": "Probe request"
       },
       {
-       "label": "Associate",
-       "text": "Client requests to join; AP assigns an association ID"
+       "from": 1,
+       "to": 0,
+       "label": "Probe response",
+       "reply": true
       },
       {
-       "label": "Secure",
-       "text": "802.1X/EAP if enterprise, then the 4-way handshake derives encryption keys"
+       "from": 0,
+       "to": 1,
+       "label": "Auth: Open or SAE",
+       "note": "SAE = WPA3-Personal"
       },
       {
-       "label": "Get an IP",
-       "text": "DHCP over the SSID's VLAN — back to the Serve stage"
+       "from": 1,
+       "to": 0,
+       "label": "Authentication response",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "Association request"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "Association response",
+       "reply": true
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "4-way handshake (1–4)",
+       "note": "per-session keys derived"
+      },
+      {
+       "from": 0,
+       "to": 2,
+       "label": "DHCP Discover, now encrypted",
+       "note": "back to the Serve stage"
       }
      ],
-     "title": "How a client joins a WLAN"
+     "caption": "On an enterprise SSID an 802.1X/EAP exchange with a RADIUS server sits between association and the 4-way handshake — the next lesson shows it."
     },
     {
      "type": "table",
@@ -2099,6 +2692,17 @@ TRACK.modules.push({
       }
      ],
      "title": "Mixed clients on one AP"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "IEEE 802.11 defines the standards; the Wi-Fi Alliance certifies products and names the generations.",
+      "Wi-Fi 6 brought OFDMA and TWT; Wi-Fi 6E added 6 GHz; Wi-Fi 7 adds 320 MHz channels, 4096-QAM and MLO.",
+      "An SSID is the name, a BSSID is one SSID on one radio, an ESS is many BSSs joined by the wired distribution system.",
+      "Joining means discover, authenticate, associate, secure (4-way handshake), then DHCP.",
+      "Legacy clients and too many SSIDs waste airtime for everyone."
+     ]
     },
     {
      "type": "quiz",
@@ -2237,6 +2841,110 @@ TRACK.modules.push({
       }
      ],
      "title": "A lightweight AP comes online"
+    },
+    {
+     "type": "topology",
+     "title": "Controller-based WLAN",
+     "nodes": [
+      {
+       "id": "core",
+       "kind": "l3switch",
+       "label": "Core",
+       "x": 3,
+       "y": 1
+      },
+      {
+       "id": "wlc",
+       "kind": "controller",
+       "label": "WLAN controller",
+       "sub": "Data centre",
+       "x": 6,
+       "y": 3
+      },
+      {
+       "id": "sw",
+       "kind": "switch",
+       "label": "SW2",
+       "sub": "PoE+ access",
+       "x": 3,
+       "y": 3
+      },
+      {
+       "id": "ap1",
+       "kind": "ap",
+       "label": "AP1",
+       "sub": "Local mode",
+       "x": 2,
+       "y": 5
+      },
+      {
+       "id": "ap2",
+       "kind": "ap",
+       "label": "AP2",
+       "sub": "Local mode",
+       "x": 4,
+       "y": 5
+      },
+      {
+       "id": "lap",
+       "kind": "laptop",
+       "label": "Laptop",
+       "x": 0.5,
+       "y": 6
+      },
+      {
+       "id": "ph",
+       "kind": "phone",
+       "label": "Wi-Fi phone",
+       "x": 5.5,
+       "y": 6
+      }
+     ],
+     "links": [
+      {
+       "a": "core",
+       "b": "wlc",
+       "label": "10G"
+      },
+      {
+       "a": "sw",
+       "b": "core",
+       "label": "uplink"
+      },
+      {
+       "a": "ap1",
+       "b": "sw",
+       "label": "PoE+"
+      },
+      {
+       "a": "ap2",
+       "b": "sw",
+       "label": "PoE+"
+      },
+      {
+       "a": "ap1",
+       "b": "wlc",
+       "label": "CAPWAP",
+       "style": "tunnel"
+      },
+      {
+       "a": "ap2",
+       "b": "wlc",
+       "label": "CAPWAP",
+       "style": "tunnel"
+      },
+      {
+       "a": "lap",
+       "b": "ap1",
+       "style": "wireless"
+      },
+      {
+       "a": "ph",
+       "b": "ap2",
+       "style": "wireless"
+      }
+     ],
+     "caption": "Each lightweight AP builds a CAPWAP tunnel (UDP 5246 control, 5247 data) across the routed network to the controller. Client data can ride the tunnel to the controller or be switched locally at the AP, depending on policy."
     },
     {
      "type": "table",
@@ -2429,6 +3137,17 @@ TRACK.modules.push({
      "title": "Calls drop in the corridor"
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Autonomous APs suit a handful of APs; controller-based and cloud-managed designs centralise policy, RF and monitoring.",
+      "Lightweight APs reach their controller over CAPWAP, UDP 5246 (control) and 5247 (data).",
+      "Locally switching APs need a trunk; centrally tunnelled APs usually need only an access port.",
+      "The client decides when to roam; 802.11k and v guide it, 802.11r makes secure roams fast.",
+      "Modern multi-radio APs need PoE+ or 802.3bt power to run every radio."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -2587,30 +3306,85 @@ TRACK.modules.push({
      "title": "The three 802.1X roles"
     },
     {
-     "type": "flow",
-     "items": [
+     "type": "sequence",
+     "title": "Enterprise join with 802.1X and EAP-TLS",
+     "actors": [
+      "Supplicant (laptop)",
+      "Authenticator (AP)",
+      "RADIUS server"
+     ],
+     "steps": [
       {
-       "label": "Associate",
-       "text": "Client associates; the port is open only for EAP"
+       "from": 0,
+       "to": 1,
+       "label": "802.11 association",
+       "note": "port open for EAP only"
       },
       {
-       "label": "EAP over the air",
-       "text": "Supplicant ↔ authenticator using EAP over LAN"
+       "from": 1,
+       "to": 0,
+       "label": "EAP-Request / Identity",
+       "reply": true
       },
       {
-       "label": "RADIUS",
-       "text": "Authenticator ↔ RADIUS server (UDP 1812)"
+       "from": 0,
+       "to": 1,
+       "label": "EAP-Response / Identity"
       },
       {
-       "label": "Accept",
-       "text": "Server sends Access-Accept with key material and policy"
+       "from": 1,
+       "to": 2,
+       "label": "Access-Request (EAP)",
+       "note": "UDP 1812"
       },
       {
+       "from": 2,
+       "to": 1,
+       "label": "Access-Challenge",
+       "reply": true,
+       "note": "start EAP-TLS"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "EAP-TLS: server cert",
+       "note": "client validates the server"
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "EAP-TLS: client cert"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "Access-Request (more)"
+      },
+      {
+       "from": 2,
+       "to": 1,
+       "label": "Accept + key + VLAN",
+       "reply": true
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "EAP-Success",
+       "reply": true
+      },
+      {
+       "from": 1,
+       "to": 0,
        "label": "4-way handshake",
-       "text": "AP and client derive per-session encryption keys; traffic flows"
+       "note": "per-session encryption keys"
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "Encrypted data, DHCP"
       }
      ],
-     "title": "Enterprise join, step by step"
+     "caption": "The AP never checks the credential itself: it relays EAP between the laptop and the RADIUS server and opens the port only after Access-Accept. With EAP-TLS no password crosses the network at all."
     },
     {
      "type": "table",
@@ -2651,7 +3425,8 @@ TRACK.modules.push({
       "**Protected Management Frames (802.11w)** are mandatory, blocking forged deauthentication attacks.",
       "**WPA3-Enterprise 192-bit mode** for high-security environments.",
       "**Enhanced Open (OWE)**: encryption for open guest networks without a password.",
-      "**Transition mode** allows WPA2 and WPA3 clients on one SSID during migration — at WPA2's security level for the WPA2 clients."
+      "**Transition mode** allows WPA2 and WPA3 clients on one SSID during migration — at WPA2's security level for the WPA2 clients.",
+      "**Wi-Fi 7**: multi-link operation is offered only on SSIDs secured with WPA3 (or OWE) and PMF, so WPA2-only SSIDs give up Wi-Fi 7 features."
      ],
      "title": "What WPA3 adds"
     },
@@ -2729,6 +3504,17 @@ TRACK.modules.push({
       }
      ],
      "title": "A Dhaka start-up outgrows its Wi-Fi password"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "WEP and WPA/TKIP are broken; WPA2-AES is the minimum, WPA3 the target, and 6 GHz requires WPA3 or OWE.",
+      "Personal mode shares one secret (SAE in WPA3); enterprise mode gives each user or device its own credential via 802.1X.",
+      "802.1X roles: supplicant, authenticator (AP or controller), authentication server (RADIUS).",
+      "EAP-TLS is strongest; with PEAP or TTLS clients must validate the server certificate.",
+      "Separate guests and IoT onto their own SSIDs, VLANs and policies."
+     ]
     },
     {
      "type": "quiz",
@@ -2832,7 +3618,7 @@ TRACK.modules.push({
       },
       {
        "title": "Wired and power",
-       "text": "Cable each AP to a switch with enough PoE budget and the correct trunk or access configuration."
+       "text": "Cable each AP to a switch with enough PoE budget and the correct trunk or access configuration. Wi-Fi 6E and Wi-Fi 7 APs often need 802.3bt power and a 2.5 or 5 Gbps multi-gigabit port so the uplink does not become the bottleneck."
       },
       {
        "title": "Install and validate",
@@ -2935,6 +3721,83 @@ TRACK.modules.push({
       ]
      ],
      "title": "Example plan: three-AP office (single floor)"
+    },
+    {
+     "type": "topology",
+     "title": "The three-AP office as built",
+     "nodes": [
+      {
+       "id": "inet",
+       "kind": "internet",
+       "label": "Internet",
+       "sub": "Fibre + 4G backup",
+       "x": 3,
+       "y": 0
+      },
+      {
+       "id": "edge",
+       "kind": "router",
+       "label": "Edge router",
+       "sub": "NAT and firewall",
+       "x": 3,
+       "y": 1.5
+      },
+      {
+       "id": "sw",
+       "kind": "switch",
+       "label": "SW2",
+       "sub": "PoE+, 370 W budget",
+       "x": 3,
+       "y": 3
+      },
+      {
+       "id": "ap1",
+       "kind": "ap",
+       "label": "AP1 · reception",
+       "sub": "ch 1 · ch 36",
+       "x": 1,
+       "y": 4.5
+      },
+      {
+       "id": "ap2",
+       "kind": "ap",
+       "label": "AP2 · open plan",
+       "sub": "2.4 off · ch 52",
+       "x": 3,
+       "y": 5
+      },
+      {
+       "id": "ap3",
+       "kind": "ap",
+       "label": "AP3 · back office",
+       "sub": "ch 11 · ch 149",
+       "x": 5,
+       "y": 4.5
+      }
+     ],
+     "links": [
+      {
+       "a": "inet",
+       "b": "edge"
+      },
+      {
+       "a": "edge",
+       "b": "sw"
+      },
+      {
+       "a": "sw",
+       "b": "ap1"
+      },
+      {
+       "a": "sw",
+       "b": "ap2"
+      },
+      {
+       "a": "sw",
+       "b": "ap3"
+      }
+     ],
+     "caption": "Three moderate cells on non-adjacent 5 GHz channels (each AP shows its 2.4 GHz channel, then its 5 GHz channel), with AP2's 2.4 GHz radio off so the 2.4 GHz cells do not contend. All three APs draw PoE+ from one switch that still has budget to spare."
     },
     {
      "type": "cli",
@@ -3110,6 +3973,17 @@ TRACK.modules.push({
      "prompt": "Walk through a building you know well — your campus, office or home. Where would you put access points, which walls would cause the most trouble, and which band would you rely on for each area?"
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Start from requirements: users, devices, applications, areas and security.",
+      "Small offices are usually capacity-bound: more APs at moderate power beat one AP at full power.",
+      "Plan channels and power deliberately, and switch off 2.4 GHz radios that only add contention.",
+      "Check PoE budget and multi-gigabit uplinks before go-live.",
+      "Validate after installation with passive and active surveys and keep the as-built record."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -3233,6 +4107,46 @@ TRACK.modules.push({
      "title": "Security vocabulary"
     },
     {
+     "type": "matrix",
+     "title": "A simple risk matrix",
+     "x": "Likelihood",
+     "y": "Impact",
+     "quadrants": [
+      {
+       "title": "Plan and protect",
+       "items": [
+        "Core router hardware failure",
+        "Fire in the comms room",
+        "Redundancy, backups, insurance"
+       ]
+      },
+      {
+       "title": "Treat first",
+       "items": [
+        "Internet-facing router with Telnet and old software",
+        "Admin accounts protected by a password only",
+        "Patch, disable, add MFA now"
+       ]
+      },
+      {
+       "title": "Accept and monitor",
+       "items": [
+        "Lab switch with an outdated banner",
+        "Review at the next audit"
+       ]
+      },
+      {
+       "title": "Reduce cheaply",
+       "items": [
+        "Phishing emails reaching staff",
+        "Guest Wi-Fi misuse",
+        "Awareness, filtering, rate limits"
+       ]
+      }
+     ],
+     "caption": "Risk combines likelihood and impact. Place each finding in a box, treat the top-right box first and record a decision for every item — accepting a small risk is valid when it is written down. Examples are illustrative."
+    },
+    {
      "type": "framework",
      "items": [
       {
@@ -3336,7 +4250,8 @@ TRACK.modules.push({
         "Check new passwords against lists of breached passwords",
         "Change only when compromise is suspected",
         "Allow password managers and paste",
-        "Rate-limit and lock out repeated failures"
+        "Rate-limit and lock out repeated failures",
+        "Offer passkeys where the service supports them"
        ]
       }
      ],
@@ -3366,7 +4281,7 @@ TRACK.modules.push({
     {
      "type": "callout",
      "kind": "insight",
-     "text": "SMS codes are better than nothing but can be intercepted or socially engineered. Push approvals can be abused by spamming prompts until a tired user taps \"approve\". **Phishing-resistant** methods — hardware keys and passkeys bound to the real website — are the strongest choice, especially for network administrators.",
+     "text": "SMS codes are better than nothing but can be intercepted or socially engineered. Push approvals can be abused by spamming prompts until a tired user taps \"approve\". **Phishing-resistant** methods — hardware security keys and **passkeys** (FIDO2/WebAuthn credentials that only work on the genuine site) — are the strongest choice, especially for network administrators.",
      "title": "Not all MFA is equal"
     },
     {
@@ -3399,6 +4314,17 @@ TRACK.modules.push({
     {
      "type": "reflection",
      "prompt": "Think about the accounts you use for network or lab work. Which ones still rely on a password alone, and what would it take to add phishing-resistant MFA to the most important one?"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "A vulnerability is a weakness, a threat is who or what could use it, an exploit is the method, and risk is likelihood × impact.",
+      "Map every attack to what it damages: confidentiality, integrity or availability.",
+      "People are attacked too: phishing, smishing, vishing, pretexting, tailgating and baiting.",
+      "Current password practice favours long passphrases, breached-password checks and change only on compromise.",
+      "Prefer phishing-resistant MFA — security keys and passkeys — for administrators."
+     ]
     },
     {
      "type": "quiz",
@@ -3565,6 +4491,79 @@ TRACK.modules.push({
      "note": "`local` after the group means the device uses its local account **only if the server is unreachable** — not if the server rejects the user. Keep the break-glass password in a vault and test it regularly."
     },
     {
+     "type": "sequence",
+     "title": "An administrator login through TACACS+",
+     "actors": [
+      "Engineer",
+      "R1 (AAA client)",
+      "TACACS+ 10.0.99.11"
+     ],
+     "steps": [
+      {
+       "from": 0,
+       "to": 1,
+       "label": "SSH login as netadmin"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "Authentication START",
+       "note": "TCP 49, body encrypted"
+      },
+      {
+       "from": 2,
+       "to": 1,
+       "label": "REPLY: get password",
+       "reply": true
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "Password prompt",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "Password (+ MFA)"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "CONTINUE: password"
+      },
+      {
+       "from": 2,
+       "to": 1,
+       "label": "PASS",
+       "reply": true
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "Authorise exec shell?"
+      },
+      {
+       "from": 2,
+       "to": 1,
+       "label": "PASS: privilege 15",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "Config commands"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "Accounting per command",
+       "note": "who, what, when"
+      }
+     ],
+     "caption": "Every login, privilege decision and command is checked or recorded centrally. R1 falls back to its local break-glass account only when the server cannot be reached; a rejection from the server is final."
+    },
+    {
      "type": "callout",
      "kind": "warning",
      "text": "Typing `aaa new-model` immediately changes how logins work. On a remote device, keep an existing session open, configure and test a new SSH login in a second window, and only then close the first session.",
@@ -3675,6 +4674,16 @@ TRACK.modules.push({
       }
      ],
      "title": "Leaver on Friday"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "AAA centralises who may log in (authentication), what they may do (authorisation) and what they did (accounting).",
+      "RADIUS (UDP 1812/1813) suits network access; TACACS+ (TCP 49, full encryption, per-command control) suits device administration.",
+      "Local fallback is used only when no AAA server answers — keep a vaulted, tested break-glass account.",
+      "Harden every device: strong hashed secrets, SSH-only VTYs with ACLs, unused services and ports off, patched software, central logs."
+     ]
     },
     {
      "type": "quiz",
@@ -3846,6 +4855,83 @@ TRACK.modules.push({
      "title": "Standard vs extended"
     },
     {
+     "type": "topology",
+     "title": "Where each ACL type belongs",
+     "nodes": [
+      {
+       "id": "users",
+       "kind": "switch",
+       "label": "Users",
+       "sub": "10.1.10.0/24",
+       "x": 0,
+       "y": 3
+      },
+      {
+       "id": "r1",
+       "kind": "router",
+       "label": "R1",
+       "x": 1.5,
+       "y": 3
+      },
+      {
+       "id": "r2",
+       "kind": "router",
+       "label": "R2",
+       "sub": "WAN",
+       "x": 3,
+       "y": 3
+      },
+      {
+       "id": "r3",
+       "kind": "router",
+       "label": "R3",
+       "x": 4.5,
+       "y": 3
+      },
+      {
+       "id": "hr",
+       "kind": "server",
+       "label": "HR server",
+       "sub": "10.3.3.10",
+       "x": 6.5,
+       "y": 3
+      },
+      {
+       "id": "oth",
+       "kind": "server",
+       "label": "Other servers",
+       "sub": "Must stay reachable",
+       "x": 4.5,
+       "y": 1
+      }
+     ],
+     "links": [
+      {
+       "a": "users",
+       "b": "r1",
+       "label": "Gi0/0 · extended ACL in"
+      },
+      {
+       "a": "r1",
+       "b": "r2"
+      },
+      {
+       "a": "r2",
+       "b": "r3"
+      },
+      {
+       "a": "r3",
+       "b": "hr",
+       "label": "Gi0/1 · standard ACL out"
+      },
+      {
+       "a": "r3",
+       "b": "oth"
+      }
+     ],
+     "caption": "The extended ACL inbound on R1 drops HR-bound traffic before it crosses the WAN. A standard ACL matches only the source, so it must sit next to the destination — outbound toward the HR server — or it would block these users from everything."
+    },
+    {
      "type": "cli",
      "device": "R1 · IOS-style CLI",
      "lines": [
@@ -4011,6 +5097,17 @@ TRACK.modules.push({
      "title": "Where should it go?"
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "ACLs are read top-down, first match wins, and an implicit deny ends every list.",
+      "Wildcard = 255.255.255.255 − subnet mask; 0 bits must match, 1 bits are ignored.",
+      "Extended ACLs go near the source, standard ACLs near the destination; VTY lines use `access-class`.",
+      "Direction matters: an ACL with the subnet as source belongs inbound on that subnet's interface.",
+      "Write the policy in words first, test allowed and blocked flows, and watch the hit counters."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -4138,6 +5235,85 @@ TRACK.modules.push({
       ]
      ],
      "title": "Layer 2 attacks and their counters"
+    },
+    {
+     "type": "topology",
+     "title": "Trusted and untrusted ports",
+     "nodes": [
+      {
+       "id": "ds",
+       "kind": "l3switch",
+       "label": "Distribution",
+       "sub": "Relay to 10.0.50.10",
+       "x": 3,
+       "y": 0
+      },
+      {
+       "id": "dhcp",
+       "kind": "server",
+       "label": "DHCP server",
+       "sub": "10.0.50.10",
+       "x": 6,
+       "y": 0
+      },
+      {
+       "id": "sw1",
+       "kind": "switch",
+       "label": "SW1",
+       "sub": "Snooping + DAI",
+       "x": 3,
+       "y": 2
+      },
+      {
+       "id": "pc",
+       "kind": "host",
+       "label": "Staff PC",
+       "sub": "Gi0/5 · untrusted",
+       "x": 1,
+       "y": 4
+      },
+      {
+       "id": "atk",
+       "kind": "attacker",
+       "label": "Rogue device",
+       "sub": "Gi0/7 · untrusted",
+       "x": 5,
+       "y": 4
+      }
+     ],
+     "links": [
+      {
+       "a": "ds",
+       "b": "dhcp"
+      },
+      {
+       "a": "ds",
+       "b": "sw1",
+       "label": "trusted uplink",
+       "bEnd": "Gi0/24"
+      },
+      {
+       "a": "sw1",
+       "b": "pc"
+      },
+      {
+       "a": "sw1",
+       "b": "atk",
+       "label": "fake Offers dropped",
+       "style": "attack"
+      }
+     ],
+     "zones": [
+      {
+       "label": "Untrusted access ports",
+       "x": 0,
+       "y": 4,
+       "w": 7,
+       "h": 1,
+       "tone": "warn"
+      }
+     ],
+     "caption": "Only the uplink toward the real DHCP server is trusted. Offers or Acks arriving on any access port are dropped, and DAI then checks every ARP on those ports against the bindings that snooping recorded."
     },
     {
      "type": "cli",
@@ -4313,6 +5489,17 @@ TRACK.modules.push({
      "title": "Odd gateway on the second floor"
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Layer 2 attacks start on an access port: MAC flooding, rogue DHCP, starvation, ARP poisoning, VLAN hopping.",
+      "Port security limits and learns MACs; violation modes are protect, restrict and shutdown.",
+      "DHCP snooping trusts only uplinks toward real servers and builds the binding table.",
+      "DAI and IP source guard use that table — enable and verify snooping first, and add ARP ACLs for static hosts.",
+      "Static access ports with negotiation off stop trunk-based VLAN hopping."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -4440,30 +5627,64 @@ TRACK.modules.push({
      "title": "What IPsec provides"
     },
     {
-     "type": "flow",
-     "items": [
+     "type": "sequence",
+     "title": "Building an IKEv2 site-to-site tunnel",
+     "actors": [
+      "BR1 (branch gateway)",
+      "HQ gateway"
+     ],
+     "steps": [
       {
-       "label": "Interesting traffic",
-       "text": "Branch gateway sees traffic for head-office subnets"
+       "from": 0,
+       "to": 0,
+       "label": "Traffic matches policy",
+       "note": "destination is an HQ subnet"
       },
       {
-       "label": "IKE negotiation",
-       "text": "Peers authenticate and agree algorithms on UDP 500 (UDP 4500 if NAT is detected)"
+       "from": 0,
+       "to": 1,
+       "label": "IKE_SA_INIT request",
+       "note": "proposals, DH, nonces · UDP 500"
       },
       {
-       "label": "IPsec SAs",
-       "text": "Security associations created for each direction"
+       "from": 1,
+       "to": 0,
+       "label": "IKE_SA_INIT response",
+       "note": "chosen proposal, DH; NAT detection",
+       "reply": true
       },
       {
-       "label": "ESP protects data",
-       "text": "Packets encrypted and authenticated inside ESP (IP protocol 50)"
+       "from": 0,
+       "to": 1,
+       "label": "IKE_AUTH request",
+       "note": "ID, auth, child SA · UDP 4500 if NAT"
       },
       {
-       "label": "Rekey / expire",
-       "text": "Keys refreshed on schedule; tunnel torn down when idle or on failure"
+       "from": 1,
+       "to": 0,
+       "label": "IKE_AUTH response",
+       "reply": true,
+       "note": "child SA agreed"
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "ESP data (protocol 50)"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "ESP data",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "CREATE_CHILD_SA: rekey",
+       "note": "before the SA lifetime ends"
       }
      ],
-     "title": "Building an IPsec tunnel (concept)"
+     "caption": "Two exchanges — four messages — authenticate the peers and build the first pair of IPsec SAs. Data then flows inside ESP, and keys are refreshed before they expire."
     },
     {
      "type": "table",
@@ -4495,6 +5716,14 @@ TRACK.modules.push({
       [
        "NAT-T",
        "Wraps ESP in UDP 4500 so it can pass through NAT devices"
+      ],
+      [
+       "IKEv1",
+       "Older key-exchange version, now formally deprecated — do not use it for new tunnels"
+      ],
+      [
+       "Post-quantum key exchange",
+       "Hybrid key exchanges designed to resist future quantum attacks are appearing in IKEv2 and TLS products; check platform support before relying on them"
       ]
      ],
      "title": "IPsec terms"
@@ -4579,6 +5808,105 @@ TRACK.modules.push({
      "title": "Zones in a branch firewall"
     },
     {
+     "type": "topology",
+     "title": "Zones in a branch firewall",
+     "nodes": [
+      {
+       "id": "inet",
+       "kind": "internet",
+       "label": "Internet",
+       "x": 3,
+       "y": 0
+      },
+      {
+       "id": "fw",
+       "kind": "firewall",
+       "label": "Branch firewall",
+       "sub": "Stateful, zone-based",
+       "x": 3,
+       "y": 2
+      },
+      {
+       "id": "dmz",
+       "kind": "server",
+       "label": "Booking server",
+       "sub": "HTTPS only",
+       "x": 6,
+       "y": 2
+      },
+      {
+       "id": "staff",
+       "kind": "host",
+       "label": "Staff",
+       "x": 1,
+       "y": 4
+      },
+      {
+       "id": "guest",
+       "kind": "laptop",
+       "label": "Guests",
+       "x": 5,
+       "y": 4
+      }
+     ],
+     "links": [
+      {
+       "a": "fw",
+       "b": "inet"
+      },
+      {
+       "a": "fw",
+       "b": "dmz",
+       "label": "HTTPS in"
+      },
+      {
+       "a": "fw",
+       "b": "staff",
+       "label": "sessions out"
+      },
+      {
+       "a": "fw",
+       "b": "guest",
+       "label": "Internet only"
+      }
+     ],
+     "zones": [
+      {
+       "label": "Outside",
+       "x": 2,
+       "y": 0,
+       "w": 3,
+       "h": 1,
+       "tone": "bad"
+      },
+      {
+       "label": "DMZ",
+       "x": 6,
+       "y": 2,
+       "w": 1,
+       "h": 1,
+       "tone": "accent"
+      },
+      {
+       "label": "Inside",
+       "x": 0,
+       "y": 4,
+       "w": 3,
+       "h": 1,
+       "tone": "good"
+      },
+      {
+       "label": "Guest",
+       "x": 4,
+       "y": 4,
+       "w": 3,
+       "h": 1,
+       "tone": "warn"
+      }
+     ],
+     "caption": "Each zone has its own interface and rules: Inside may start sessions out, Outside reaches only HTTPS on the DMZ server, Guests reach only the Internet, and nothing starts from Guest or Outside toward Inside."
+    },
+    {
      "type": "framework",
      "items": [
       {
@@ -4632,6 +5960,12 @@ TRACK.modules.push({
       }
      ],
      "title": "Traditional perimeter vs zero trust"
+    },
+    {
+     "type": "callout",
+     "kind": "definition",
+     "title": "ZTNA, SSE and SASE",
+     "text": "**Zero-trust network access (ZTNA)** connects a verified user and device to one application instead of a whole network — the zero-trust successor to broad remote-access VPNs. **Security service edge (SSE)** delivers ZTNA, a secure web gateway, cloud access security and firewalling from the cloud; **SASE** combines SSE with SD-WAN so branches and remote users get the same policy wherever they are."
     },
     {
      "type": "scenario",
@@ -4719,6 +6053,17 @@ TRACK.modules.push({
        "term": "Zero trust",
        "def": "Security model that grants no implicit trust based on network location and verifies every request."
       }
+     ]
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Site-to-site VPNs join networks; remote-access VPNs join one device, ideally with MFA.",
+      "IPsec gives confidentiality, integrity, authentication and anti-replay: IKEv2 on UDP 500/4500 negotiates, ESP carries data.",
+      "Stateless ACLs, stateful firewalls, NGFWs, IDS and IPS inspect at different depths; only inline devices can block.",
+      "Zero trust verifies identity, device and context for every request and limits access to the application needed.",
+      "ZTNA, SSE and SASE deliver zero-trust access and security from the cloud."
      ]
     },
     {
@@ -4940,6 +6285,112 @@ TRACK.modules.push({
      "title": "Where the APIs sit"
     },
     {
+     "type": "topology",
+     "title": "Northbound and southbound in one picture",
+     "nodes": [
+      {
+       "id": "tk",
+       "kind": "process",
+       "label": "Ticketing",
+       "x": 1,
+       "y": 0
+      },
+      {
+       "id": "sc",
+       "kind": "process",
+       "label": "Scripts",
+       "x": 3,
+       "y": 0,
+       "sub": "Automation pipelines"
+      },
+      {
+       "id": "db",
+       "kind": "monitor",
+       "label": "Dashboards",
+       "x": 5,
+       "y": 0
+      },
+      {
+       "id": "ctl",
+       "kind": "controller",
+       "label": "Controller",
+       "sub": "Policy and assurance",
+       "x": 3,
+       "y": 2
+      },
+      {
+       "id": "r",
+       "kind": "router",
+       "label": "Routers",
+       "x": 1,
+       "y": 4
+      },
+      {
+       "id": "s",
+       "kind": "switch",
+       "label": "Switches",
+       "x": 3,
+       "y": 4
+      },
+      {
+       "id": "ap",
+       "kind": "ap",
+       "label": "Access points",
+       "x": 5,
+       "y": 4
+      }
+     ],
+     "links": [
+      {
+       "a": "tk",
+       "b": "ctl",
+       "label": "REST + JSON"
+      },
+      {
+       "a": "sc",
+       "b": "ctl"
+      },
+      {
+       "a": "db",
+       "b": "ctl"
+      },
+      {
+       "a": "ctl",
+       "b": "r",
+       "label": "NETCONF"
+      },
+      {
+       "a": "ctl",
+       "b": "s",
+       "label": "gNMI / RESTCONF"
+      },
+      {
+       "a": "ctl",
+       "b": "ap",
+       "label": "API / SSH"
+      }
+     ],
+     "zones": [
+      {
+       "label": "Applications — northbound",
+       "x": 0,
+       "y": 0,
+       "w": 7,
+       "h": 1,
+       "tone": "neutral"
+      },
+      {
+       "label": "Devices — southbound",
+       "x": 0,
+       "y": 4,
+       "w": 7,
+       "h": 1,
+       "tone": "neutral"
+      }
+     ],
+     "caption": "Applications ask the controller for data or changes through its northbound REST API; the controller programs devices southbound with NETCONF, RESTCONF, gNMI or, for older gear, SSH and SNMP — and telemetry flows back up the same paths."
+    },
+    {
      "type": "compare",
      "columns": [
       {
@@ -4993,6 +6444,17 @@ TRACK.modules.push({
       }
      ],
      "title": "Which approach for the school network?"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Automation brings consistency, speed, fewer errors, evidence and scale.",
+      "Devices have three planes: data (forwarding), control (building tables) and management (configuring and monitoring).",
+      "Controllers hold the network-wide view; applications use the northbound REST API, devices are reached southbound.",
+      "Fabrics separate a stable routed underlay from controller-driven overlays such as VXLAN.",
+      "Automation multiplies whatever you design — fundamentals still decide whether it is right."
+     ]
     },
     {
      "type": "quiz",
@@ -5182,6 +6644,65 @@ TRACK.modules.push({
      "note": "The token is passed in a header from an environment variable — never hard-coded in scripts or committed to version control. The response is compact JSON; tools like `jq` or Python make it readable."
     },
     {
+     "type": "sequence",
+     "title": "A script talking to a controller API",
+     "actors": [
+      "Script",
+      "Controller API"
+     ],
+     "steps": [
+      {
+       "from": 0,
+       "to": 1,
+       "label": "POST /auth/token",
+       "note": "credentials from a vault"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "200 OK + bearer token",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "GET /devices?site=sylhet",
+       "note": "Authorization: Bearer token"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "200 OK + JSON list",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "POST /vlans + JSON body"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "201 Created",
+       "reply": true,
+       "note": "Location: URL of the new VLAN"
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "GET, token expired"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "401 Unauthorized",
+       "note": "renew the token, then retry",
+       "reply": true
+      }
+     ],
+     "caption": "Every request carries its own authentication because REST is stateless, and the status code tells the script what happened before it reads any body. Paths are relative to /api/v1."
+    },
+    {
      "type": "compare",
      "columns": [
       {
@@ -5263,6 +6784,45 @@ TRACK.modules.push({
      "title": "Model-driven programmability"
     },
     {
+     "type": "tree",
+     "title": "The YANG tree behind the URL",
+     "root": {
+      "label": "ietf-interfaces",
+      "text": "YANG module",
+      "children": [
+       {
+        "label": "interfaces",
+        "text": "container",
+        "children": [
+         {
+          "label": "interface [name]",
+          "text": "list, keyed by name",
+          "children": [
+           {
+            "label": "name",
+            "text": "Loopback0"
+           },
+           {
+            "label": "type",
+            "text": "iana-if-type:softwareLoopback"
+           },
+           {
+            "label": "enabled",
+            "text": "true"
+           },
+           {
+            "label": "description",
+            "text": "optional text"
+           }
+          ]
+         }
+        ]
+       }
+      ]
+     },
+     "caption": "The RESTCONF URL below walks exactly this path — module, container, list entry keyed by name — and the leaves come back as JSON."
+    },
+    {
      "type": "cli",
      "device": "Linux host",
      "lines": [
@@ -5308,6 +6868,17 @@ TRACK.modules.push({
       }
      ],
      "title": "A 401 at midnight"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "REST uses URLs for resources and HTTP verbs for actions: GET reads, POST creates, PUT replaces, PATCH changes part, DELETE removes.",
+      "Status codes: 2xx success, 401 not authenticated, 403 not allowed, 404 not found, 429 slow down, 5xx server fault.",
+      "JSON uses braces, brackets and double quotes; YAML uses indentation with spaces, never tabs.",
+      "YANG models device data; NETCONF (TCP 830) and RESTCONF (HTTPS) read and change it.",
+      "Keep tokens and passwords out of scripts and repositories."
+     ]
     },
     {
      "type": "quiz",
@@ -5387,30 +6958,40 @@ TRACK.modules.push({
      "text": "**Configuration management** means describing how devices *should* be configured, storing that description in version control, and letting a tool make reality match it. The description becomes the **source of truth**; the tool reports and corrects **drift**. This is the heart of \"network as code\"."
     },
     {
-     "type": "flow",
+     "type": "cycle",
+     "title": "The network-as-code loop",
+     "center": "Git",
      "items": [
       {
        "label": "Source of truth",
-       "text": "Inventory and variables: sites, IPs, VLANs, standard servers"
+       "text": "Inventory and variables in Git: sites, IPs, VLANs, standard servers"
       },
       {
        "label": "Templates",
-       "text": "Jinja2 templates turn variables into device configuration"
+       "text": "Jinja2 turns variables into device configuration"
       },
       {
        "label": "Review",
-       "text": "Changes proposed in Git; a colleague reviews the diff"
+       "text": "A colleague reviews and approves the diff"
       },
       {
        "label": "Dry run",
        "text": "Check mode shows exactly what would change"
       },
       {
-       "label": "Deploy and verify",
-       "text": "Apply in a window, then run automated tests and show commands"
+       "label": "Deploy",
+       "text": "Apply in a change window"
+      },
+      {
+       "label": "Verify",
+       "text": "Automated tests and show commands prove the result"
+      },
+      {
+       "label": "Detect drift",
+       "text": "Scheduled runs report devices that no longer match"
       }
      ],
-     "title": "A network-as-code workflow"
+     "caption": "The loop never ends: every scheduled run doubles as a compliance check, and any drift it finds becomes a reviewed change back in the source of truth."
     },
     {
      "type": "callout",
@@ -5611,6 +7192,17 @@ TRACK.modules.push({
      "title": "The second run"
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Configuration management makes a version-controlled source of truth the authority and corrects drift.",
+      "Idempotent tasks report `ok` when nothing needs changing, so re-runs are safe and act as audits.",
+      "Ansible is agentless: inventory (who), playbook (what), modules (how), templates (text).",
+      "Always dry-run with `--check --diff`, pilot on a few devices, then deploy and verify.",
+      "Small Python scripts that read structured data are the fastest way to audit a standard."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -5688,30 +7280,32 @@ TRACK.modules.push({
      "text": "Automation executes what you tell it. **Intent-based networking** goes one step further: you state *what* you want — \"guest devices may reach only the Internet\", \"voice gets priority at every branch\" — and the system works out *how*, applies it, and continuously checks that reality still matches the intent. AI-assisted tools add analysis and suggestions on top. Both are powerful; both need engineers who can verify the result."
     },
     {
-     "type": "flow",
+     "type": "cycle",
+     "title": "The intent-based loop",
+     "center": "Engineers in charge",
      "items": [
       {
        "label": "Intent",
-       "text": "Business outcome in plain terms: who may reach what, with what priority"
+       "text": "Business outcome: who may reach what, with what priority"
       },
       {
        "label": "Translate",
-       "text": "System converts intent into policies and device configuration"
+       "text": "Intent becomes policies and device configuration"
       },
       {
        "label": "Activate",
-       "text": "Configuration pushed through automation to every relevant device"
+       "text": "Automation pushes configuration to every relevant device"
       },
       {
        "label": "Assure",
-       "text": "Telemetry continuously checks the network behaves as intended"
+       "text": "Telemetry checks that behaviour still matches the intent"
       },
       {
        "label": "Remediate",
        "text": "Deviations raise alerts or trigger approved corrective actions"
       }
      ],
-     "title": "The intent-based loop"
+     "caption": "Assurance feeds back into the loop continuously, and remediation goes through the same approvals as any other change — engineers stay in charge."
     },
     {
      "type": "callout",
@@ -5799,7 +7393,7 @@ TRACK.modules.push({
     {
      "type": "callout",
      "kind": "warning",
-     "text": "Never paste configurations containing passwords, keys, SNMP strings or customer data into tools your organisation has not approved. Give automated agents **read-only** credentials by default, require human approval for any change, and log every action they take. An assistant that can change 300 routers can also break 300 routers.",
+     "text": "Never paste configurations containing passwords, keys, SNMP strings or customer data into tools your organisation has not approved. Give automated agents **read-only** credentials by default, require human approval for any change, and log every action they take. An assistant that can change 300 routers can also break 300 routers. When an assistant can call APIs or tools by itself (an agent), treat every action as a change: read-only by default, explicit human approval for anything that writes, and a complete log.",
      "title": "Data and access safety"
     },
     {
@@ -5882,6 +7476,16 @@ TRACK.modules.push({
       }
      ],
      "title": "The confident suggestion"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Intent-based networking turns stated outcomes into configuration and keeps checking them: translate, activate, assure.",
+      "AI-assisted tools help with anomalies, summaries, queries, drafts and forecasts — each with its own failure mode.",
+      "Treat every suggestion as a proposal: ground, propose, review, test, apply, verify.",
+      "Strip secrets before sharing data, give tools least privilege and keep humans accountable for every change."
+     ]
     },
     {
      "type": "quiz",
@@ -6028,6 +7632,101 @@ TRACK.modules.push({
       }
      ],
      "title": "Nadia opens the bank portal from a Sylhet branch laptop"
+    },
+    {
+     "type": "topology",
+     "title": "Nadia's request, hop by hop",
+     "nodes": [
+      {
+       "id": "lap",
+       "kind": "laptop",
+       "label": "Nadia's laptop",
+       "sub": "192.168.10.37",
+       "x": 0,
+       "y": 5
+      },
+      {
+       "id": "ap",
+       "kind": "ap",
+       "label": "AP",
+       "sub": "WPA3-Enterprise",
+       "x": 0,
+       "y": 3
+      },
+      {
+       "id": "as",
+       "kind": "switch",
+       "label": "Access switch",
+       "sub": "Snooping + DAI",
+       "x": 2,
+       "y": 3
+      },
+      {
+       "id": "br",
+       "kind": "router",
+       "label": "Branch router",
+       "sub": "ACL, OSPF, PAT, QoS",
+       "x": 4,
+       "y": 3
+      },
+      {
+       "id": "svc",
+       "kind": "server",
+       "label": "DHCP / DNS",
+       "sub": "Reached via relay",
+       "x": 4,
+       "y": 5
+      },
+      {
+       "id": "inet",
+       "kind": "internet",
+       "label": "Internet",
+       "x": 6,
+       "y": 3
+      },
+      {
+       "id": "portal",
+       "kind": "server",
+       "label": "Bank portal",
+       "sub": "HTTPS",
+       "x": 6,
+       "y": 1
+      }
+     ],
+     "links": [
+      {
+       "a": "lap",
+       "b": "ap",
+       "label": "5 GHz",
+       "style": "wireless"
+      },
+      {
+       "a": "ap",
+       "b": "as",
+       "label": "trunk"
+      },
+      {
+       "a": "as",
+       "b": "br",
+       "label": "VLAN 10"
+      },
+      {
+       "a": "br",
+       "b": "svc",
+       "label": "relay"
+      },
+      {
+       "a": "br",
+       "b": "inet",
+       "label": "203.0.113.1"
+      },
+      {
+       "a": "inet",
+       "b": "portal",
+       "label": "TLS"
+      }
+     ],
+     "caption": "Every stage in the flow above sits somewhere on this path. When something fails, find how far the packet got along it, then test the next hop."
     },
     {
      "type": "table",
@@ -6266,6 +7965,16 @@ TRACK.modules.push({
      "prompt": "Look back at the eight stages of the ZCNA Packet Journey. Which stage do you feel least confident troubleshooting today, and what two lab exercises will you do this week to fix that?"
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "The Packet Journey is both the story of every request and a checklist for troubleshooting it.",
+      "Ask how far the packet got, then test the next stage — or start from shared dependencies or the latest change, as the symptom suggests.",
+      "Build the capstone stage by stage and collect verification evidence as you go.",
+      "In the exam, read the question's last line first, find the stage, read outputs carefully and eliminate."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -6304,13 +8013,13 @@ TRACK.modules.push({
       {
        "q": "In an exam question asking for the FIRST action, which option is usually best?",
        "options": [
-        "The safe step that gathers evidence about the likely stage",
-        "The most expensive hardware replacement",
-        "A reload of every device in the path",
-        "The longest and most detailed configuration change"
+        "A low-risk step that gathers evidence",
+        "Replacing the hardware that would be most expensive to lose",
+        "Reloading every device in the path to clear any faults",
+        "Making the largest configuration change that could fix it"
        ],
        "answer": 0,
-       "explain": "\"First\" questions reward evidence-based, low-risk steps. Replacing hardware, reloading devices or making large changes come later, if at all."
+       "explain": "\"First\" questions reward evidence-based, low-risk steps. Replacing hardware, reloading devices or making large changes come later, if at all, and can destroy the evidence you need."
       }
      ]
     }
@@ -6321,7 +8030,7 @@ TRACK.modules.push({
 TRACK.exam.push([
  {
   "module": "m5",
-  "q": "PCs in a new VLAN 60 (192.168.60.0/24) receive 169.254.x.x addresses. The router subinterface Gi0/1.60 has `ip address 192.168.60.1 255.255.255.0` and `ip helper-address 10.0.50.10`. The DHCP server at 10.0.50.10 shows no Discover packets arriving from 192.168.60.0/24 scope. Other VLANs work. What should you check next?",
+  "q": "PCs in a new VLAN 60 (192.168.60.0/24) receive 169.254.x.x addresses. The router subinterface Gi0/1.60 has `ip address 192.168.60.1 255.255.255.0` and `ip helper-address 10.0.50.10`. The DHCP server at 10.0.50.10 logs no requests at all for the 192.168.60.0/24 scope. Other VLANs work. What should you check next?",
   "options": [
    "Whether the DHCP server's lease time is longer than seven days",
    "Whether the router has `no ip domain-lookup` configured globally",
@@ -6333,7 +8042,7 @@ TRACK.exam.push([
  },
  {
   "module": "m5",
-  "q": "Users on 192.168.10.0/24 browse the Internet, but users on the newly added 192.168.11.0/24 cannot. Both subnets reach internal servers.",
+  "q": "Users on 192.168.10.0/24 browse the Internet, but users on the newly added 192.168.11.0/24 cannot. Both subnets reach internal servers by name and by address. What is the most likely cause?",
   "options": [
    "The outside interface is configured with `ip nat inside` instead of outside",
    "The NAT ACL does not match the new 192.168.11.0/24 subnet",
@@ -6341,7 +8050,7 @@ TRACK.exam.push([
    "The DNS server is not resolving names for the new subnet's users"
   ],
   "answer": 1,
-  "explain": "Because the original subnet still reaches the Internet, the NAT roles and default route must be working. The only per-subnet NAT element is the ACL in `ip nat inside source list`. A DNS failure would also affect access by IP, and the question says browsing fails only for the new subnet."
+  "explain": "The original subnet still reaches the Internet, so the NAT interface roles and the default route work. The only per-subnet NAT element is the ACL used by `ip nat inside source list`, so it must also match 192.168.11.0/24. DNS cannot be the cause because both subnets already resolve internal names."
  },
  {
   "module": "m5",

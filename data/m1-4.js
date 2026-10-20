@@ -166,6 +166,107 @@ TRACK.modules.push({
      "title": "A student opens the university portal"
     },
     {
+     "type": "topology",
+     "title": "The student portal path",
+     "nodes": [
+      {
+       "id": "lap",
+       "kind": "laptop",
+       "label": "Student laptop",
+       "sub": "10.20.30.45/24",
+       "x": 0,
+       "y": 4
+      },
+      {
+       "id": "ap",
+       "kind": "ap",
+       "label": "Access point",
+       "sub": "Ceiling AP",
+       "x": 0,
+       "y": 2
+      },
+      {
+       "id": "as",
+       "kind": "switch",
+       "label": "Access switch",
+       "sub": "Floor 2 closet",
+       "x": 2,
+       "y": 2
+      },
+      {
+       "id": "ds",
+       "kind": "l3switch",
+       "label": "Distribution",
+       "sub": "Gateway 10.20.30.1",
+       "x": 4,
+       "y": 2
+      },
+      {
+       "id": "fw",
+       "kind": "firewall",
+       "label": "DC firewall",
+       "sub": "Allows TCP 443",
+       "x": 6,
+       "y": 2
+      },
+      {
+       "id": "srv",
+       "kind": "server",
+       "label": "Portal server",
+       "sub": "10.50.0.10",
+       "x": 6,
+       "y": 4
+      }
+     ],
+     "links": [
+      {
+       "a": "lap",
+       "b": "ap",
+       "label": "Wi-Fi",
+       "style": "wireless"
+      },
+      {
+       "a": "ap",
+       "b": "as",
+       "label": "2.5G PoE+"
+      },
+      {
+       "a": "as",
+       "b": "ds",
+       "label": "10G uplink"
+      },
+      {
+       "a": "ds",
+       "b": "fw",
+       "label": "10G"
+      },
+      {
+       "a": "fw",
+       "b": "srv",
+       "label": "HTTPS"
+      }
+     ],
+     "zones": [
+      {
+       "label": "Campus LAN",
+       "x": 0,
+       "y": 2,
+       "w": 5,
+       "h": 3,
+       "tone": "neutral"
+      },
+      {
+       "label": "Data centre",
+       "x": 6,
+       "y": 2,
+       "w": 1,
+       "h": 3,
+       "tone": "accent"
+      }
+     ],
+     "caption": "Follow the request from radio to copper to the gateway and through the firewall. Each hop belongs to a Journey stage, so when the portal fails you can ask which hop broke first."
+    },
+    {
      "type": "compare",
      "columns": [
       {
@@ -255,6 +356,16 @@ TRACK.modules.push({
      "kind": "pro",
      "text": "Even a rough sketch — devices, links, subnets, which port goes where — saves hours. Professionals keep an up-to-date diagram and an addressing plan for every site, and they update both after every change.",
      "title": "Draw before you type"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "A network moves data between devices using shared protocols; hosts, switches, routers, APs, firewalls and controllers each have one main job.",
+      "The eight Packet Journey stages — Wire, Address, Switch, Route, Serve, Air, Guard, Automate — double as a troubleshooting map.",
+      "When symptoms differ between devices, treat them as separate faults at separate stages.",
+      "LANs, WANs and cloud networks use the same IP ideas; they differ in ownership, distance and tooling."
+     ]
     },
     {
      "type": "quiz",
@@ -487,6 +598,62 @@ TRACK.modules.push({
      "title": "What a router actually rewrites"
     },
     {
+     "type": "topology",
+     "title": "One packet, three frames",
+     "nodes": [
+      {
+       "id": "pc",
+       "kind": "host",
+       "label": "PC",
+       "sub": "10.20.30.45 · MAC A",
+       "x": 0,
+       "y": 2
+      },
+      {
+       "id": "r1",
+       "kind": "router",
+       "label": "R1",
+       "sub": "MACs B and C",
+       "x": 2,
+       "y": 2
+      },
+      {
+       "id": "r2",
+       "kind": "router",
+       "label": "R2",
+       "sub": "MACs D and E",
+       "x": 4,
+       "y": 2
+      },
+      {
+       "id": "srv",
+       "kind": "server",
+       "label": "Server",
+       "sub": "10.50.0.10 · MAC F",
+       "x": 6,
+       "y": 2
+      }
+     ],
+     "links": [
+      {
+       "a": "pc",
+       "b": "r1",
+       "label": "src A → dst B"
+      },
+      {
+       "a": "r1",
+       "b": "r2",
+       "label": "src C → dst D"
+      },
+      {
+       "a": "r2",
+       "b": "srv",
+       "label": "src E → dst F"
+      }
+     ],
+     "caption": "The IP header (10.20.30.45 → 10.50.0.10) is identical on every link; only the Ethernet source and destination change at each router, and each router lowers the TTL by one."
+    },
+    {
      "type": "keypoints",
      "items": [
       "**Troubleshooting** — test one layer at a time instead of guessing.",
@@ -521,6 +688,38 @@ TRACK.modules.push({
       }
      ],
      "title": "Bottom-up troubleshooting in five checks"
+    },
+    {
+     "type": "cycle",
+     "title": "A structured troubleshooting cycle",
+     "center": "Evidence first",
+     "items": [
+      {
+       "label": "Define the problem",
+       "text": "Who is affected, what fails, since when, what changed?"
+      },
+      {
+       "label": "Gather facts",
+       "text": "Interface state, addresses, logs, captures — evidence before opinions."
+      },
+      {
+       "label": "Isolate the layer",
+       "text": "Bottom-up, top-down or follow the packet until one layer fails."
+      },
+      {
+       "label": "Test one cause",
+       "text": "Form a hypothesis and test it with a single, reversible change."
+      },
+      {
+       "label": "Fix and verify",
+       "text": "Apply the fix, then prove the original symptom is gone."
+      },
+      {
+       "label": "Document",
+       "text": "Record cause, fix and evidence in the ticket and the diagram."
+      }
+     ],
+     "caption": "The layered checks above sit inside a repeatable loop. Change one thing at a time, verify, and write down what you found so the next engineer starts ahead."
     },
     {
      "type": "cli",
@@ -567,6 +766,16 @@ TRACK.modules.push({
      "kind": "warning",
      "text": "Real protocols do not always fit neatly. TLS, QUIC and ARP are argued about in every classroom. Use the layers to organise your thinking — do not lose points arguing about edge cases.",
      "title": "Models are maps, not laws"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "OSI has seven layers and TCP/IP four; use them as maps, not laws.",
+      "Encapsulation adds a header per layer: data → segment → packet → frame → bits.",
+      "Routers rebuild the frame on every hop; IP addresses stay end to end unless NAT is in the path.",
+      "Test one layer at a time and stop at the first layer that fails."
+     ]
     },
     {
      "type": "quiz",
@@ -693,6 +902,38 @@ TRACK.modules.push({
      "title": "Ethernet II frame, field by field"
     },
     {
+     "type": "packet",
+     "title": "Ethernet II frame with an 802.1Q tag",
+     "fields": [
+      {
+       "label": "Destination MAC",
+       "bits": 48
+      },
+      {
+       "label": "Source MAC",
+       "bits": 48
+      },
+      {
+       "label": "802.1Q tag (optional)",
+       "bits": 32
+      },
+      {
+       "label": "EtherType",
+       "bits": 16
+      },
+      {
+       "label": "Payload: 46–1500 bytes",
+       "bits": 16,
+       "variable": true
+      },
+      {
+       "label": "FCS (CRC-32)",
+       "bits": 32
+      }
+     ],
+     "caption": "Preamble and SFD are not shown. The payload is drawn short — on a standard frame it is 46–1500 bytes — and the 4-byte tag is present only on trunk links."
+    },
+    {
      "type": "callout",
      "kind": "definition",
      "text": "A **MAC address** is a 48-bit Layer 2 identifier, written as 12 hexadecimal digits (for example `00:1A:2B:3C:4D:5E` or `001a.2b3c.4d5e`). The first 24 bits are normally the manufacturer's **OUI**; the last 24 bits are assigned by that manufacturer.",
@@ -785,7 +1026,7 @@ TRACK.modules.push({
        "2.5G/5GBASE-T",
        "2.5 / 5 Gbps",
        "Cat5e/Cat6 copper",
-       "100 m — popular for Wi-Fi 6/7 AP uplinks"
+       "100 m — common for Wi-Fi 6E and Wi-Fi 7 AP uplinks"
       ],
       [
        "10GBASE-T",
@@ -853,7 +1094,7 @@ TRACK.modules.push({
     {
      "type": "callout",
      "kind": "pro",
-     "text": "A 48-port PoE switch may support 30 W per port but only, say, 740 W in total. Add up the worst-case draw of every powered device plus headroom before you buy — APs and PTZ cameras draw most during boot and heater cycles.",
+     "text": "A 48-port PoE switch may support 30 W per port but only, say, 740 W in total. Add up the worst-case draw of every powered device plus headroom before you buy — APs and PTZ cameras draw most during boot and heater cycles. Illustrative example: 16 Wi-Fi 7 APs at 30 W (480 W) plus 20 phones at 7 W (140 W) is 620 W; with 20% headroom you need about 744 W, so a 740 W switch is already too small.",
      "title": "Budget the whole switch, not just the port"
     },
     {
@@ -897,6 +1138,17 @@ TRACK.modules.push({
       "Speed/duplex left on auto at both ends, or hard-set identically",
       "Interface error counters checked after installation (CRC, input errors, collisions)",
       "Test results (certifier or light-meter readings) saved with the site documentation"
+     ]
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "A switch learns from the source MAC and forwards on the destination MAC; the FCS lets receivers discard damaged frames.",
+      "Duplex mismatches pass pings but wreck throughput — keep both ends on auto or set both identically.",
+      "Copper reaches 100 m; multimode fibre suits in-building runs; single-mode fibre covers kilometres. Optics must match at both ends.",
+      "Multi-gigabit copper (2.5/5 Gbps) is now the normal uplink for new Wi-Fi APs.",
+      "Budget PoE for the whole switch, not just per port, and keep headroom."
      ]
     },
     {
@@ -1048,6 +1300,110 @@ TRACK.modules.push({
      "title": "Two-tier vs three-tier campus"
     },
     {
+     "type": "topology",
+     "title": "A two-tier (collapsed-core) office",
+     "nodes": [
+      {
+       "id": "inet",
+       "kind": "internet",
+       "label": "Internet",
+       "sub": "Two ISPs",
+       "x": 3,
+       "y": 0
+      },
+      {
+       "id": "fw",
+       "kind": "firewall",
+       "label": "Edge firewall",
+       "sub": "Dual-ISP / SD-WAN",
+       "x": 3,
+       "y": 1
+      },
+      {
+       "id": "c1",
+       "kind": "l3switch",
+       "label": "CORE1",
+       "sub": "VLAN gateways",
+       "x": 2,
+       "y": 2
+      },
+      {
+       "id": "c2",
+       "kind": "l3switch",
+       "label": "CORE2",
+       "sub": "VLAN gateways",
+       "x": 4,
+       "y": 2
+      },
+      {
+       "id": "a1",
+       "kind": "switch",
+       "label": "Floor 1 access",
+       "x": 1,
+       "y": 4
+      },
+      {
+       "id": "a2",
+       "kind": "switch",
+       "label": "Floor 2 access",
+       "x": 3,
+       "y": 4
+      },
+      {
+       "id": "a3",
+       "kind": "switch",
+       "label": "Floor 3 access",
+       "x": 5,
+       "y": 4
+      }
+     ],
+     "links": [
+      {
+       "a": "inet",
+       "b": "fw"
+      },
+      {
+       "a": "fw",
+       "b": "c1"
+      },
+      {
+       "a": "fw",
+       "b": "c2"
+      },
+      {
+       "a": "c1",
+       "b": "c2",
+       "label": "Peer link",
+       "style": "bold"
+      },
+      {
+       "a": "a1",
+       "b": "c1"
+      },
+      {
+       "a": "a1",
+       "b": "c2"
+      },
+      {
+       "a": "a2",
+       "b": "c1"
+      },
+      {
+       "a": "a2",
+       "b": "c2"
+      },
+      {
+       "a": "a3",
+       "b": "c1"
+      },
+      {
+       "a": "a3",
+       "b": "c2"
+      }
+     ],
+     "caption": "Every floor switch has one uplink to each core switch, so losing a cable or a switch on one floor never cuts off another floor. The core pair also hosts the VLAN gateways."
+    },
+    {
      "type": "text",
      "text": "Data centres moved from tree-shaped designs to **spine-leaf** fabrics because modern applications send most traffic *between* servers (east-west) rather than in and out (north-south). In a spine-leaf fabric every leaf switch connects to every spine switch, and leaves never connect to each other directly."
     },
@@ -1060,6 +1416,138 @@ TRACK.modules.push({
       "Servers, storage, firewalls and border routers all attach to leaves."
      ],
      "title": "Spine-leaf rules of thumb"
+    },
+    {
+     "type": "topology",
+     "title": "Spine-leaf fabric",
+     "nodes": [
+      {
+       "id": "s1",
+       "kind": "l3switch",
+       "label": "Spine 1",
+       "x": 2,
+       "y": 0
+      },
+      {
+       "id": "s2",
+       "kind": "l3switch",
+       "label": "Spine 2",
+       "x": 5,
+       "y": 0
+      },
+      {
+       "id": "l1",
+       "kind": "switch",
+       "label": "Leaf 1",
+       "sub": "Rack 1",
+       "x": 0.5,
+       "y": 2
+      },
+      {
+       "id": "l2",
+       "kind": "switch",
+       "label": "Leaf 2",
+       "sub": "Rack 2",
+       "x": 2.5,
+       "y": 2
+      },
+      {
+       "id": "l3",
+       "kind": "switch",
+       "label": "Leaf 3",
+       "sub": "Rack 3",
+       "x": 4.5,
+       "y": 2
+      },
+      {
+       "id": "l4",
+       "kind": "switch",
+       "label": "Border leaf",
+       "sub": "Edge services",
+       "x": 6.5,
+       "y": 2
+      },
+      {
+       "id": "v1",
+       "kind": "server",
+       "label": "Servers",
+       "x": 0.5,
+       "y": 4
+      },
+      {
+       "id": "v2",
+       "kind": "server",
+       "label": "Servers",
+       "x": 2.5,
+       "y": 4
+      },
+      {
+       "id": "v3",
+       "kind": "storage",
+       "label": "Storage",
+       "x": 4.5,
+       "y": 4
+      },
+      {
+       "id": "wan",
+       "kind": "router",
+       "label": "WAN edge",
+       "sub": "Internet / WAN",
+       "x": 6.5,
+       "y": 4
+      }
+     ],
+     "links": [
+      {
+       "a": "l1",
+       "b": "s1"
+      },
+      {
+       "a": "l1",
+       "b": "s2"
+      },
+      {
+       "a": "l2",
+       "b": "s1"
+      },
+      {
+       "a": "l2",
+       "b": "s2"
+      },
+      {
+       "a": "l3",
+       "b": "s1"
+      },
+      {
+       "a": "l3",
+       "b": "s2"
+      },
+      {
+       "a": "l4",
+       "b": "s1"
+      },
+      {
+       "a": "l4",
+       "b": "s2"
+      },
+      {
+       "a": "v1",
+       "b": "l1"
+      },
+      {
+       "a": "v2",
+       "b": "l2"
+      },
+      {
+       "a": "v3",
+       "b": "l3"
+      },
+      {
+       "a": "wan",
+       "b": "l4"
+      }
+     ],
+     "caption": "Every leaf has one link to every spine and leaves never link to each other, so any two servers are leaf → spine → leaf apart and all uplinks forward at once using equal-cost routing."
     },
     {
      "type": "table",
@@ -1099,6 +1587,12 @@ TRACK.modules.push({
        "Mobile data link",
        "Quick backup or temporary site link",
        "Variable latency, data caps"
+      ],
+      [
+       "SASE edge",
+       "SD-WAN combined with cloud-delivered security (web gateway, zero-trust access, firewall as a service)",
+       "One policy for branches and remote users; inspected direct-to-cloud access",
+       "Traffic steering, data privacy and provider dependence need careful design"
       ]
      ],
      "title": "WAN connectivity options"
@@ -1204,6 +1698,16 @@ TRACK.modules.push({
      "rows": 8
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Two-tier (collapsed core) suits one building; three-tier adds a separate core when many buildings must join.",
+      "Data centres use spine-leaf: every leaf to every spine, predictable hops, all links active.",
+      "WAN choices range from leased lines to internet VPN, SD-WAN, cellular and SASE; most branches now mix several.",
+      "Hybrid cloud is the normal case, so on-premises and cloud address ranges must never overlap."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -1307,30 +1811,137 @@ TRACK.modules.push({
      "title": "TCP vs UDP"
     },
     {
-     "type": "flow",
-     "items": [
+     "type": "packet",
+     "title": "TCP header (20 bytes without options)",
+     "fields": [
       {
-       "label": "SYN",
-       "text": "Client → server: \"I want to connect; my starting sequence number is x.\""
+       "label": "Source port",
+       "bits": 16
       },
       {
-       "label": "SYN-ACK",
-       "text": "Server → client: \"Agreed; my sequence number is y; I acknowledge x+1.\""
+       "label": "Destination port",
+       "bits": 16
       },
       {
-       "label": "ACK",
-       "text": "Client → server: \"I acknowledge y+1.\" The connection is established."
+       "label": "Sequence number",
+       "bits": 32
       },
       {
-       "label": "Data",
-       "text": "Both sides send data; every byte is acknowledged."
+       "label": "Acknowledgement number",
+       "bits": 32
       },
       {
-       "label": "FIN / ACK",
-       "text": "Each side closes its direction with FIN and ACK (or a RST aborts at once)."
+       "label": "Data offset",
+       "bits": 4
+      },
+      {
+       "label": "Reserved",
+       "bits": 4
+      },
+      {
+       "label": "Flags",
+       "bits": 8
+      },
+      {
+       "label": "Window",
+       "bits": 16
+      },
+      {
+       "label": "Checksum",
+       "bits": 16
+      },
+      {
+       "label": "Urgent pointer",
+       "bits": 16
+      },
+      {
+       "label": "Options (0–40 bytes)",
+       "bits": 32,
+       "variable": true
       }
      ],
-     "title": "TCP three-way handshake (client to web server)"
+     "caption": "Ports identify the applications, sequence and acknowledgement numbers make delivery reliable, and the 8 flag bits (CWR, ECE, URG, ACK, PSH, RST, SYN, FIN) drive the handshake. Options are 0–40 bytes and are drawn short."
+    },
+    {
+     "type": "packet",
+     "title": "UDP header (8 bytes)",
+     "fields": [
+      {
+       "label": "Source port",
+       "bits": 16
+      },
+      {
+       "label": "Destination port",
+       "bits": 16
+      },
+      {
+       "label": "Length",
+       "bits": 16
+      },
+      {
+       "label": "Checksum",
+       "bits": 16
+      }
+     ],
+     "caption": "Four 16-bit fields and nothing else: no handshake, no sequence numbers, no retransmission. That is why UDP suits DNS queries, voice media and QUIC, which adds its own reliability on top."
+    },
+    {
+     "type": "sequence",
+     "title": "TCP connection: open, use, close",
+     "actors": [
+      "Client 10.20.30.45",
+      "Server 10.50.0.10"
+     ],
+     "steps": [
+      {
+       "from": 0,
+       "to": 1,
+       "label": "SYN, seq = x",
+       "note": "port 51544 → 443"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "SYN-ACK, seq=y, ack=x+1",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "ACK, ack = y+1",
+       "note": "connection established"
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "Data: TLS + HTTP request"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "Data and ACKs",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "FIN",
+       "note": "client finished sending"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "ACK, then FIN",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "ACK",
+       "note": "connection closed"
+      }
+     ],
+     "caption": "Three messages open the connection; each direction is then closed separately with FIN and ACK. A RST instead of a SYN-ACK means the host is reachable but nothing listens on that port."
     },
     {
      "type": "table",
@@ -1621,6 +2232,16 @@ TRACK.modules.push({
      ]
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "TCP is connection-oriented and reliable; UDP is lightweight and leaves reliability to the application (as QUIC does).",
+      "The handshake is SYN, SYN-ACK, ACK; a socket is IP address + protocol + port.",
+      "Ping, traceroute, ipconfig/ip and arp/ip neigh answer most first-line questions in minutes.",
+      "Work outward: own stack, own IP, gateway, remote IP, then names."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -1724,6 +2345,65 @@ TRACK.modules.push({
     {
      "type": "text",
      "text": "An IPv4 address is **32 bits**, written as four 8-bit **octets** in dotted decimal — for example `192.168.10.25`. Part of those bits identifies the **network** (which subnet) and the rest identifies the **host** (which interface on that subnet). The **subnet mask** or **prefix length** tells everyone where the dividing line falls."
+    },
+    {
+     "type": "packet",
+     "title": "IPv4 header (20 bytes without options)",
+     "fields": [
+      {
+       "label": "Version",
+       "bits": 4
+      },
+      {
+       "label": "IHL",
+       "bits": 4
+      },
+      {
+       "label": "DSCP",
+       "bits": 6
+      },
+      {
+       "label": "ECN",
+       "bits": 2
+      },
+      {
+       "label": "Total length",
+       "bits": 16
+      },
+      {
+       "label": "Identification",
+       "bits": 16
+      },
+      {
+       "label": "Flags",
+       "bits": 3
+      },
+      {
+       "label": "Fragment offset",
+       "bits": 13
+      },
+      {
+       "label": "TTL",
+       "bits": 8
+      },
+      {
+       "label": "Protocol",
+       "bits": 8
+      },
+      {
+       "label": "Header checksum",
+       "bits": 16
+      },
+      {
+       "label": "Source address",
+       "bits": 32
+      },
+      {
+       "label": "Destination address",
+       "bits": 32
+      }
+     ],
+     "caption": "The two 32-bit address fields are the subject of this module. TTL, Protocol and the DSCP bits come back later in routing, ACLs and QoS. Options are rare and not shown."
     },
     {
      "type": "table",
@@ -1978,6 +2658,16 @@ TRACK.modules.push({
      "title": "Is it private?"
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "An IPv4 address is 32 bits; the mask or prefix length marks where the network part ends.",
+      "Classes are history — CIDR prefixes of any length are what routers and clouds use.",
+      "Recognise on sight: RFC 1918 private, 100.64.0.0/10 CGN, 127/8 loopback, 169.254/16 link-local and the three documentation ranges.",
+      "Usable hosts = 2^h − 2, except /31 point-to-point links and /32 host routes."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -2226,6 +2916,45 @@ TRACK.modules.push({
      "title": "Splitting 192.168.10.0/24 into four /26 subnets"
     },
     {
+     "type": "tree",
+     "title": "Each borrowed bit halves the block",
+     "root": {
+      "label": "192.168.10.0/24",
+      "text": "256 addresses",
+      "children": [
+       {
+        "label": "192.168.10.0/25",
+        "text": "128 addresses",
+        "children": [
+         {
+          "label": "192.168.10.0/26",
+          "text": "hosts .1–.62"
+         },
+         {
+          "label": "192.168.10.64/26",
+          "text": "hosts .65–.126"
+         }
+        ]
+       },
+       {
+        "label": "192.168.10.128/25",
+        "text": "128 addresses",
+        "children": [
+         {
+          "label": "192.168.10.128/26",
+          "text": "hosts .129–.190"
+         },
+         {
+          "label": "192.168.10.192/26",
+          "text": "hosts .193–.254"
+         }
+        ]
+       }
+      ]
+     },
+     "caption": "The four /26 leaves are exactly the subnets in the table above. Borrowing one more bit would split each of them into two /27s of 32 addresses."
+    },
+    {
      "type": "tool",
      "tool": "subnet",
      "title": "Practise: check the worked examples",
@@ -2311,6 +3040,16 @@ TRACK.modules.push({
       }
      ],
      "title": "Choosing a prefix"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Block size = 256 − the mask value in the interesting octet; networks start at multiples of it.",
+      "Broadcast = next network − 1; usable hosts sit between network and broadcast.",
+      "Pick the smallest prefix whose 2^h − 2 covers the hosts plus growth.",
+      "Check boundaries: an address that is not a multiple of the block size is not a network address."
+     ]
     },
     {
      "type": "quiz",
@@ -2501,6 +3240,59 @@ TRACK.modules.push({
      "title": "Overlap is the silent killer"
     },
     {
+     "type": "tree",
+     "title": "A non-overlapping hierarchy",
+     "root": {
+      "label": "10.0.0.0/8",
+      "text": "Whole organisation (private)",
+      "children": [
+       {
+        "label": "10.10.0.0/16",
+        "text": "Dhaka head office",
+        "children": [
+         {
+          "label": "10.10.10.0/24",
+          "text": "Staff VLAN 10"
+         },
+         {
+          "label": "10.10.20.0/23",
+          "text": "Students VLAN 20"
+         },
+         {
+          "label": "10.10.99.0/24",
+          "text": "Management VLAN 99"
+         }
+        ]
+       },
+       {
+        "label": "10.20.0.0/16",
+        "text": "Chattogram warehouse",
+        "children": [
+         {
+          "label": "10.20.8.0/22",
+          "text": "Site block, VLSM inside"
+         }
+        ]
+       },
+       {
+        "label": "10.200.0.0/16",
+        "text": "Cloud networks",
+        "children": [
+         {
+          "label": "10.200.0.0/20",
+          "text": "Production"
+         },
+         {
+          "label": "10.200.16.0/20",
+          "text": "Test"
+         }
+        ]
+       }
+      ]
+     },
+     "caption": "Plan top-down: one summarisable block per site, VLSM inside each site and a separate block for cloud networks. Each site is then advertised as a single route and no two plans can collide. Values are an illustrative plan."
+    },
+    {
      "type": "case",
      "title": "A Chattogram warehouse addressing plan",
      "context": "A logistics company is opening a bonded warehouse near Chattogram port. The IT team has been given **172.20.8.0/22** for the site. Requirements: handheld scanners and floor Wi-Fi 300 hosts; office staff 100; CCTV cameras 50; IP phones 25; switch and AP management 12; two router links to two WAN providers.",
@@ -2609,6 +3401,16 @@ TRACK.modules.push({
       "Address source is as planned (DHCP lease or documented static)",
       "No 169.254.x.x or duplicate-address warnings",
       "Trace to a remote subnet leaves through the expected gateway"
+     ]
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "VLSM sizes each subnet to its need inside one block that can still be summarised.",
+      "Allocate largest first so every subnet lands on its own block boundary.",
+      "Overlapping subnets cause \"half the hosts work\" faults — check every new subnet against the plan.",
+      "Verify hosts field by field: usable address, exact mask, on-link gateway, planned DNS."
      ]
     },
     {
@@ -2796,6 +3598,45 @@ TRACK.modules.push({
      "title": "A typical global unicast address (left to right, top first)"
     },
     {
+     "type": "tree",
+     "title": "An IPv6 site plan from a /48",
+     "root": {
+      "label": "2001:db8:acad::/48",
+      "text": "Campus allocation",
+      "children": [
+       {
+        "label": "2001:db8:acad:100::/56",
+        "text": "Building A",
+        "children": [
+         {
+          "label": "2001:db8:acad:110::/64",
+          "text": "Staff"
+         },
+         {
+          "label": "2001:db8:acad:120::/64",
+          "text": "Voice"
+         }
+        ]
+       },
+       {
+        "label": "2001:db8:acad:200::/56",
+        "text": "Building B",
+        "children": [
+         {
+          "label": "2001:db8:acad:210::/64",
+          "text": "Staff"
+         }
+        ]
+       },
+       {
+        "label": "2001:db8:acad:ff00::/56",
+        "text": "Infrastructure: loopbacks /128, links /127"
+       }
+      ]
+     },
+     "caption": "Nibble-aligned boundaries keep the plan readable: a /56 per building (the first two hex digits of the fourth hextet) and a /64 per VLAN. A /48 holds 256 such buildings."
+    },
+    {
      "type": "formula",
      "items": [
       {
@@ -2843,6 +3684,46 @@ TRACK.modules.push({
       }
      ],
      "title": "IPv4 vs IPv6 at a glance"
+    },
+    {
+     "type": "packet",
+     "title": "IPv6 header (40 bytes, fixed)",
+     "width": 64,
+     "fields": [
+      {
+       "label": "Version",
+       "bits": 4
+      },
+      {
+       "label": "Traffic class",
+       "bits": 8
+      },
+      {
+       "label": "Flow label",
+       "bits": 20
+      },
+      {
+       "label": "Payload length",
+       "bits": 16
+      },
+      {
+       "label": "Next header",
+       "bits": 8
+      },
+      {
+       "label": "Hop limit",
+       "bits": 8
+      },
+      {
+       "label": "Source address",
+       "bits": 128
+      },
+      {
+       "label": "Destination address",
+       "bits": 128
+      }
+     ],
+     "caption": "No header checksum and no fragmentation fields: options move into extension headers chained through Next header. The two 128-bit addresses take 32 of the 40 bytes."
     },
     {
      "type": "callout",
@@ -2895,6 +3776,16 @@ TRACK.modules.push({
      "title": "Spot the invalid address"
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "IPv6 addresses are 128 bits in eight hextets; drop leading zeros and use :: once, for the longest zero run.",
+      "Know the prefixes: 2000::/3 global, fd00::/8 unique local, fe80::/10 link-local, ff00::/8 multicast, 2001:db8::/32 documentation.",
+      "Sites usually receive a /48 or /56; every LAN gets a /64.",
+      "There is no broadcast in IPv6, and several addresses per interface are normal."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -2906,7 +3797,7 @@ TRACK.modules.push({
         "2001:db8::42:0:0:0:1"
        ],
        "answer": 2,
-       "explain": "Leading zeros drop and the longest zero run (three hextets) becomes ::. Two :: is invalid, the third option does not compress the longest run fully, and the fourth compresses the shorter run instead of the longest."
+       "explain": "Leading zeros drop and the longest zero run (three hextets) becomes ::. The first option uses :: twice, which is invalid; the second does not compress the longest run fully; and the fourth compresses the shorter run instead of the longest."
       },
       {
        "q": "Which prefix identifies link-local IPv6 addresses?",
@@ -3069,30 +3960,104 @@ TRACK.modules.push({
      "title": "Three ways a host gets IPv6 settings"
     },
     {
-     "type": "flow",
-     "items": [
+     "type": "sequence",
+     "title": "SLAAC from power-on to first packet",
+     "actors": [
+      "Host",
+      "Router R1",
+      "Other nodes"
+     ],
+     "steps": [
       {
-       "label": "Link-local",
-       "text": "Host creates an fe80:: address and runs duplicate address detection (NS)."
+       "from": 0,
+       "to": 0,
+       "label": "Build fe80:: link-local",
+       "note": "tentative until DAD passes"
       },
       {
-       "label": "RS",
-       "text": "Host sends a Router Solicitation to ff02::2."
+       "from": 0,
+       "to": 2,
+       "label": "NS (DAD) from ::",
+       "note": "to solicited-node multicast"
       },
       {
-       "label": "RA",
-       "text": "Router replies with prefix 2001:db8:acad:10::/64 and flags."
+       "from": 0,
+       "to": 1,
+       "label": "RS to ff02::2"
       },
       {
-       "label": "Global address",
-       "text": "Host builds prefix + interface ID and checks it with DAD."
+       "from": 1,
+       "to": 0,
+       "label": "RA with prefix, A=1",
+       "note": "prefix 2001:db8:acad:10::/64",
+       "reply": true
       },
       {
-       "label": "Gateway",
-       "text": "Host installs the router's link-local address as default route."
+       "from": 0,
+       "to": 0,
+       "label": "Build global address",
+       "note": "prefix + random interface ID"
+      },
+      {
+       "from": 0,
+       "to": 2,
+       "label": "NS (DAD) for the global address"
+      },
+      {
+       "from": 0,
+       "to": 0,
+       "label": "Default route via fe80::1",
+       "note": "learned from the RA"
       }
      ],
-     "title": "SLAAC from power-on to first packet"
+     "caption": "Silence after a duplicate address detection probe means the address is unique. The default gateway comes only from the RA, even when DHCPv6 supplies other settings."
+    },
+    {
+     "type": "sequence",
+     "title": "Stateful DHCPv6 (M flag set)",
+     "actors": [
+      "Host",
+      "Router R1",
+      "DHCPv6 server"
+     ],
+     "steps": [
+      {
+       "from": 1,
+       "to": 0,
+       "label": "RA: M=1, O=1",
+       "note": "get addresses from DHCPv6"
+      },
+      {
+       "from": 0,
+       "to": 2,
+       "label": "Solicit to ff02::1:2",
+       "note": "UDP 546 → 547"
+      },
+      {
+       "from": 2,
+       "to": 0,
+       "label": "Advertise",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 2,
+       "label": "Request"
+      },
+      {
+       "from": 2,
+       "to": 0,
+       "label": "Reply: address, DNS, lease",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 0,
+       "label": "Default route via fe80::1",
+       "note": "learned from the RA, not DHCPv6"
+      }
+     ],
+     "caption": "Four messages — Solicit, Advertise, Request, Reply — on UDP 546/547. If the server sits in another subnet the router relays them (`ipv6 dhcp relay destination`). The default gateway still comes only from the RA."
     },
     {
      "type": "cli",
@@ -3136,7 +4101,7 @@ TRACK.modules.push({
       "Plan IPv6 per VLAN the same way you plan IPv4: one /64 per VLAN, recorded in the addressing plan.",
       "Apply equivalent **security policy** to both stacks — an open IPv6 path around an IPv4 firewall is a classic hole.",
       "Monitor both: a broken IPv6 path can slow every website even when IPv4 works.",
-      "Where IPv4 is scarce, IPv6-only networks with NAT64/DNS64 translation are increasingly common (especially on mobile)."
+      "Where IPv4 is scarce, **IPv6-only** and **IPv6-mostly** networks are growing: NAT64/DNS64 reach IPv4-only services, routers can advertise the NAT64 prefix in RAs (PREF64), and DHCPv4 option 108 tells capable clients they may switch IPv4 off."
      ],
      "title": "Dual-stack rules for the real world"
     },
@@ -3229,6 +4194,17 @@ TRACK.modules.push({
      ]
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "NDP (ICMPv6 RS, RA, NS, NA) replaces ARP and drives IPv6 autoconfiguration.",
+      "RA flags choose the method: A = SLAAC, O = stateless DHCPv6 for DNS, M = stateful DHCPv6 addressing.",
+      "The default gateway always comes from the RA, usually as the router's link-local address.",
+      "`ipv6 unicast-routing` makes a router forward IPv6 and send RAs.",
+      "Dual stack is the common path; protect and monitor IPv6 exactly like IPv4."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -3240,7 +4216,7 @@ TRACK.modules.push({
         "0050:56AB:FFFE:CDEF"
        ],
        "answer": 1,
-       "explain": "Insert FFFE between 005056 and ABCDEF, then flip the 7th bit (00 → 02). The second option forgets the flip, the third reverses FFFE, and the fourth inserts FFFE in the wrong place."
+       "explain": "Insert FFFE between 005056 and ABCDEF, then flip the 7th bit (00 → 02). The first option forgets the flip, the third reverses FFFE, and the fourth inserts FFFE in the wrong place."
       },
       {
        "q": "Which RA flag tells hosts to obtain their **address** from a DHCPv6 server?",
@@ -3464,22 +4440,60 @@ TRACK.modules.push({
      "title": "Collision vs broadcast domains"
     },
     {
-     "type": "steps",
-     "items": [
+     "type": "sequence",
+     "title": "Walk-through: PC-A talks to PC-B for the first time (VLAN 10)",
+     "actors": [
+      "PC-A (Gi1/0/1)",
+      "Switch SW1",
+      "PC-B (Gi1/0/2)"
+     ],
+     "steps": [
       {
-       "title": "ARP broadcast",
-       "text": "PC-A sends an ARP request to FF:FF:FF:FF:FF:FF. The switch learns PC-A's MAC on Gi1/0/1 and floods the frame to every VLAN 10 port."
+       "from": 0,
+       "to": 1,
+       "label": "ARP request (broadcast)",
+       "note": "dst FF:FF:FF:FF:FF:FF"
       },
       {
-       "title": "ARP reply",
-       "text": "PC-B replies by unicast to PC-A's MAC. The switch learns PC-B on Gi1/0/2 and forwards the reply only to Gi1/0/1."
+       "from": 1,
+       "to": 1,
+       "label": "Learn PC-A's MAC on Gi1/0/1"
       },
       {
-       "title": "Data",
-       "text": "From now on frames between A and B go port to port; no flooding is needed while the entries stay fresh."
+       "from": 1,
+       "to": 2,
+       "label": "Flood to VLAN 10 ports"
+      },
+      {
+       "from": 2,
+       "to": 1,
+       "label": "ARP reply (unicast)",
+       "reply": true
+      },
+      {
+       "from": 1,
+       "to": 1,
+       "label": "Learn PC-B's MAC on Gi1/0/2"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "Forward out Gi1/0/1 only",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "Data frame to PC-B's MAC"
+      },
+      {
+       "from": 1,
+       "to": 2,
+       "label": "Forward out Gi1/0/2 only",
+       "note": "no flooding needed now"
       }
      ],
-     "title": "Walk-through: PC-A (VLAN 10) talks to PC-B for the first time"
+     "caption": "The ARP request is a broadcast, so it is flooded; from the reply onward the switch knows both ports and every frame between A and B goes to one port only."
     },
     {
      "type": "callout",
@@ -3528,6 +4542,16 @@ TRACK.modules.push({
       }
      ],
      "title": "A suspicious device"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "A switch learns source MACs per VLAN and port, then forwards, filters or floods on the destination MAC.",
+      "Unknown unicast, broadcast and (without snooping) multicast are flooded within the VLAN only.",
+      "Each switch port is a collision domain; each VLAN is a broadcast domain.",
+      "To find a host: IP → MAC from the gateway's ARP table, then MAC → port through the switch MAC tables."
+     ]
     },
     {
      "type": "quiz",
@@ -3649,6 +4673,50 @@ TRACK.modules.push({
      "title": "The 802.1Q tag (4 bytes inserted after the source MAC)"
     },
     {
+     "type": "packet",
+     "title": "Where the 802.1Q tag sits in the frame",
+     "fields": [
+      {
+       "label": "Destination MAC",
+       "bits": 48
+      },
+      {
+       "label": "Source MAC",
+       "bits": 48
+      },
+      {
+       "label": "TPID 0x8100",
+       "bits": 16
+      },
+      {
+       "label": "PCP",
+       "bits": 3
+      },
+      {
+       "label": "DEI",
+       "bits": 1
+      },
+      {
+       "label": "VLAN ID (VID)",
+       "bits": 12
+      },
+      {
+       "label": "EtherType",
+       "bits": 16
+      },
+      {
+       "label": "Payload",
+       "bits": 16,
+       "variable": true
+      },
+      {
+       "label": "FCS",
+       "bits": 32
+      }
+     ],
+     "caption": "The 4-byte tag is inserted between the source MAC and the original EtherType. The 3-bit PCP carries the CoS value used by QoS; the 12-bit VID carries the VLAN. The payload is drawn short."
+    },
+    {
      "type": "compare",
      "columns": [
       {
@@ -3706,6 +4774,89 @@ TRACK.modules.push({
      ],
      "title": "Configuring an 802.1Q trunk",
      "note": "Some multi-protocol switches also need `switchport trunk encapsulation dot1q` before `switchport mode trunk`. `switchport nonegotiate` turns off automatic trunk negotiation messages."
+    },
+    {
+     "type": "topology",
+     "title": "VLANs across two switches",
+     "nodes": [
+      {
+       "id": "sw1",
+       "kind": "switch",
+       "label": "SW1",
+       "sub": "Native 99",
+       "x": 2,
+       "y": 2
+      },
+      {
+       "id": "sw2",
+       "kind": "switch",
+       "label": "SW2",
+       "sub": "Native 99",
+       "x": 5,
+       "y": 2
+      },
+      {
+       "id": "pc1",
+       "kind": "host",
+       "label": "Staff PC",
+       "sub": "VLAN 10",
+       "x": 1,
+       "y": 4
+      },
+      {
+       "id": "ph",
+       "kind": "phone",
+       "label": "IP phone",
+       "sub": "Voice VLAN 50",
+       "x": 3,
+       "y": 4
+      },
+      {
+       "id": "pc2",
+       "kind": "host",
+       "label": "Student PC",
+       "sub": "VLAN 20",
+       "x": 4,
+       "y": 4
+      },
+      {
+       "id": "pc3",
+       "kind": "host",
+       "label": "Accounts PC",
+       "sub": "VLAN 30 · not on trunk",
+       "x": 6,
+       "y": 4
+      }
+     ],
+     "links": [
+      {
+       "a": "sw1",
+       "b": "sw2",
+       "label": "802.1Q trunk 10,20,50,99",
+       "style": "bold"
+      },
+      {
+       "a": "pc1",
+       "b": "sw1",
+       "label": "access"
+      },
+      {
+       "a": "ph",
+       "b": "sw1",
+       "label": "access + voice"
+      },
+      {
+       "a": "pc2",
+       "b": "sw2",
+       "label": "access"
+      },
+      {
+       "a": "pc3",
+       "b": "sw2",
+       "label": "access"
+      }
+     ],
+     "caption": "One trunk carries tagged frames for every allowed VLAN, while access ports send and receive untagged frames in a single VLAN. The Accounts PC on SW2 is stranded until VLAN 30 is added to the trunk — the scenario below."
     },
     {
      "type": "cli",
@@ -3791,6 +4942,17 @@ TRACK.modules.push({
       ]
      ],
      "rows": 8
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "One VLAN = one subnet = one broadcast domain; traffic between VLANs must be routed.",
+      "Access ports carry one untagged data VLAN (plus an optional voice VLAN); trunks carry many VLANs with 4-byte 802.1Q tags.",
+      "Use the same unused native VLAN at both ends and never put users in it.",
+      "Use `switchport trunk allowed vlan add` — without `add` you replace the whole list.",
+      "Verify trunks with `show interfaces trunk`; they do not appear in `show vlan brief`."
+     ]
     },
     {
      "type": "quiz",
@@ -3940,6 +5102,63 @@ TRACK.modules.push({
      "title": "A packet from VLAN 10 to VLAN 20 via router-on-a-stick"
     },
     {
+     "type": "topology",
+     "title": "Router-on-a-stick",
+     "nodes": [
+      {
+       "id": "r1",
+       "kind": "router",
+       "label": "R1",
+       "sub": "Gi0/0.10 · Gi0/0.20",
+       "x": 3,
+       "y": 0
+      },
+      {
+       "id": "sw",
+       "kind": "switch",
+       "label": "SW1",
+       "x": 3,
+       "y": 2
+      },
+      {
+       "id": "a",
+       "kind": "host",
+       "label": "PC-A",
+       "sub": "10.10.10.25 · VLAN 10",
+       "x": 1,
+       "y": 4
+      },
+      {
+       "id": "b",
+       "kind": "host",
+       "label": "PC-B",
+       "sub": "10.10.20.40 · VLAN 20",
+       "x": 5,
+       "y": 4
+      }
+     ],
+     "links": [
+      {
+       "a": "r1",
+       "b": "sw",
+       "label": "Trunk 10, 20, 99",
+       "style": "bold",
+       "bEnd": "Gi1/0/48"
+      },
+      {
+       "a": "a",
+       "b": "sw",
+       "label": "access VLAN 10"
+      },
+      {
+       "a": "b",
+       "b": "sw",
+       "label": "access VLAN 20"
+      }
+     ],
+     "caption": "One trunk carries both VLANs to R1. A packet from PC-A crosses the trunk twice: up tagged VLAN 10 to subinterface .10, and back down tagged VLAN 20 from subinterface .20."
+    },
+    {
      "type": "cli",
      "device": "R1 · IOS-style CLI",
      "lines": [
@@ -3958,6 +5177,63 @@ TRACK.modules.push({
      ],
      "title": "Router-on-a-stick",
      "note": "The subinterface number is only a label — the `encapsulation dot1Q` VLAN ID is what matters. Matching them (Gi0/0.10 ↔ VLAN 10) keeps life simple. The switch port facing the router must be a trunk carrying 10, 20 and 99."
+    },
+    {
+     "type": "topology",
+     "title": "Inter-VLAN routing on a layer 3 switch",
+     "nodes": [
+      {
+       "id": "fw",
+       "kind": "firewall",
+       "label": "Edge firewall",
+       "sub": "10.0.0.2/30",
+       "x": 3,
+       "y": 0
+      },
+      {
+       "id": "ds1",
+       "kind": "l3switch",
+       "label": "DS1",
+       "sub": "SVIs Vlan10/20/30 .1",
+       "x": 3,
+       "y": 2
+      },
+      {
+       "id": "as1",
+       "kind": "switch",
+       "label": "AS1",
+       "sub": "Staff, students",
+       "x": 1,
+       "y": 4
+      },
+      {
+       "id": "as2",
+       "kind": "switch",
+       "label": "AS2",
+       "sub": "Accounts",
+       "x": 5,
+       "y": 4
+      }
+     ],
+     "links": [
+      {
+       "a": "ds1",
+       "b": "fw",
+       "label": "routed 10.0.0.0/30",
+       "aEnd": "Gi1/0/48"
+      },
+      {
+       "a": "ds1",
+       "b": "as1",
+       "label": "trunk 10,20"
+      },
+      {
+       "a": "ds1",
+       "b": "as2",
+       "label": "trunk 10,20,30"
+      }
+     ],
+     "caption": "Traffic between VLANs turns around inside DS1 in hardware; only traffic leaving the campus uses the routed uplink Gi1/0/48 toward the edge firewall."
     },
     {
      "type": "cli",
@@ -4048,6 +5324,16 @@ TRACK.modules.push({
       "Which switch features stop the \"home switch in two wall ports\" outage from repeating?"
      ],
      "answer": "Create VLANs per role: **Lab A** and **Lab B** (or one student VLAN of /24 with room to grow), **Staff**, **Printers**, **Servers** and a **Management** VLAN, plus an unused native VLAN for trunks. Route between them with **SVIs on the layer 3 switch** — wire-speed routing in hardware — and apply ACLs so student VLANs can reach printers and the internet but not staff shares (ACL details come in the Guard module). Make the access-switch uplinks 802.1Q trunks with explicit allowed lists. To stop the loop, run **RSTP**, set the core switch as **root bridge**, and enable **PortFast with BPDU guard** on every student-facing port so a port that hears a BPDU from a rogue switch shuts down instead of looping the network."
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Every VLAN needs a gateway inside its own subnet; where it lives decides speed and policy.",
+      "Router-on-a-stick: one trunk, one subinterface per VLAN; the `encapsulation dot1Q` ID selects the VLAN.",
+      "Layer 3 switch SVIs route in hardware and are the campus standard; `ip routing` must be on.",
+      "An SVI is up/up only when its VLAN exists and has at least one forwarding port."
+     ]
     },
     {
      "type": "quiz",
@@ -4292,6 +5578,70 @@ TRACK.modules.push({
      "note": "Root priority 24586 = 24576 + VLAN 10, so DS1 is root. Gi1/0/23 leads to the root; Gi1/0/24 is the alternate path, blocked until Gi1/0/23 fails. Gi1/0/1 is an edge port. (Short cost method shown; the long method would show 20000 for 1 Gbps.)"
     },
     {
+     "type": "topology",
+     "title": "Spanning tree for VLAN 10",
+     "nodes": [
+      {
+       "id": "ds1",
+       "kind": "l3switch",
+       "label": "DS1 (root)",
+       "sub": "Priority 24576 + 10",
+       "x": 1,
+       "y": 0
+      },
+      {
+       "id": "ds2",
+       "kind": "l3switch",
+       "label": "DS2",
+       "sub": "Priority 28672 + 10",
+       "x": 5,
+       "y": 0
+      },
+      {
+       "id": "as1",
+       "kind": "switch",
+       "label": "AS1",
+       "sub": "Priority 32768 + 10",
+       "x": 3,
+       "y": 3
+      },
+      {
+       "id": "pc",
+       "kind": "host",
+       "label": "PC",
+       "sub": "Edge port",
+       "x": 3,
+       "y": 5
+      }
+     ],
+     "links": [
+      {
+       "a": "ds1",
+       "b": "ds2",
+       "label": "1G"
+      },
+      {
+       "a": "ds1",
+       "b": "as1",
+       "label": "Root port",
+       "bEnd": "Gi1/0/23"
+      },
+      {
+       "a": "ds2",
+       "b": "as1",
+       "label": "Alternate · BLK",
+       "style": "dashed",
+       "bEnd": "Gi1/0/24"
+      },
+      {
+       "a": "as1",
+       "b": "pc",
+       "label": "PortFast · Gi1/0/1"
+      }
+     ],
+     "caption": "DS1 wins the root election. AS1 reaches it through Gi1/0/23 (root port); on the AS1–DS2 link the costs tie and DS2's lower bridge ID wins, so AS1's Gi1/0/24 becomes the alternate port and discards until Gi1/0/23 fails."
+    },
+    {
      "type": "callout",
      "kind": "warning",
      "text": "PortFast skips the listening/learning wait. On a port connected to another switch it can create a temporary loop. Always pair it with **BPDU guard**, which err-disables the port the moment a BPDU arrives — turning a potential network-wide outage into one dead wall port.",
@@ -4323,6 +5673,17 @@ TRACK.modules.push({
       }
      ],
      "title": "The root bridge is in a cupboard"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Ethernet has no TTL, so a layer 2 loop circles until links and CPUs saturate.",
+      "Lowest bridge ID (priority, then MAC) is root; set root primary and secondary deliberately.",
+      "Root ports point to the root, designated ports serve each segment, alternate ports wait in discarding state.",
+      "RSTP converges in seconds through proposal and agreement; classic STP needs 30–50 seconds.",
+      "PortFast only on edge ports — always with BPDU guard."
+     ]
     },
     {
      "type": "quiz",
@@ -4523,6 +5884,76 @@ TRACK.modules.push({
      "note": "LLDP advertisements are sent every 30 seconds by default and held for 120 seconds. `show lldp neighbors detail` adds IP addresses and software versions."
     },
     {
+     "type": "topology",
+     "title": "A bundled uplink, as LLDP reports it",
+     "nodes": [
+      {
+       "id": "ds1",
+       "kind": "l3switch",
+       "label": "DS1",
+       "sub": "Distribution",
+       "x": 3,
+       "y": 0
+      },
+      {
+       "id": "as1",
+       "kind": "switch",
+       "label": "AS1",
+       "sub": "Access, floor 2",
+       "x": 3,
+       "y": 2
+      },
+      {
+       "id": "ap",
+       "kind": "ap",
+       "label": "AP-2F-01",
+       "sub": "Wi-Fi AP",
+       "x": 5,
+       "y": 3
+      },
+      {
+       "id": "pc",
+       "kind": "host",
+       "label": "Staff PC",
+       "sub": "VLAN 10",
+       "x": 1,
+       "y": 4
+      },
+      {
+       "id": "lap",
+       "kind": "laptop",
+       "label": "Laptop",
+       "x": 5,
+       "y": 5
+      }
+     ],
+     "links": [
+      {
+       "a": "ds1",
+       "b": "as1",
+       "label": "Po1 · 2 × 1G LACP",
+       "style": "bold",
+       "bEnd": "Gi1/0/23-24"
+      },
+      {
+       "a": "as1",
+       "b": "ap",
+       "aEnd": "Gi1/0/7",
+       "bEnd": "eth0"
+      },
+      {
+       "a": "as1",
+       "b": "pc"
+      },
+      {
+       "a": "ap",
+       "b": "lap",
+       "style": "wireless"
+      }
+     ],
+     "caption": "Spanning tree sees Po1 as one link, so both members forward. AS1's LLDP table lists exactly these neighbours and ports — an easy way to check the drawing against reality."
+    },
+    {
      "type": "callout",
      "kind": "pro",
      "text": "Run LLDP on all infrastructure ports and collect neighbour tables regularly — they rebuild a physical topology diagram automatically. Consider disabling it on ports facing untrusted users or the internet, since it reveals device details.",
@@ -4630,6 +6061,16 @@ TRACK.modules.push({
        "term": "LLDP",
        "def": "IEEE 802.1AB vendor-neutral protocol for advertising device identity to direct neighbours."
       }
+     ]
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "EtherChannel bundles up to 8 matching links into one logical port that STP treats as a single link.",
+      "LACP active/active or active/passive forms a bundle; passive/passive and on/active do not.",
+      "Traffic is hashed per flow, so one flow never exceeds one member's speed.",
+      "LLDP (802.1AB) is the vendor-neutral way to see and document direct neighbours."
      ]
     },
     {
@@ -4775,6 +6216,74 @@ TRACK.modules.push({
      "note": "In `[110/200]`, 110 is the administrative distance and 200 is the metric. `L` routes are the router's own interface addresses as /32 host routes. (The internet-facing connected route is trimmed from this listing.)"
     },
     {
+     "type": "topology",
+     "title": "R1 and its neighbours",
+     "nodes": [
+      {
+       "id": "isp",
+       "kind": "internet",
+       "label": "ISP",
+       "sub": "203.0.113.1 (default)",
+       "x": 3,
+       "y": 0
+      },
+      {
+       "id": "lan",
+       "kind": "switch",
+       "label": "R1 LAN",
+       "sub": "192.168.10.0/24",
+       "x": 1,
+       "y": 1
+      },
+      {
+       "id": "r1",
+       "kind": "router",
+       "label": "R1",
+       "x": 3,
+       "y": 2
+      },
+      {
+       "id": "r2",
+       "kind": "router",
+       "label": "R2",
+       "sub": "OSPF: 10.2.20.0/24",
+       "x": 1,
+       "y": 4
+      },
+      {
+       "id": "r3",
+       "kind": "router",
+       "label": "R3",
+       "sub": "Static: 10.2.0.0/16, .128/25",
+       "x": 5,
+       "y": 4
+      }
+     ],
+     "links": [
+      {
+       "a": "r1",
+       "b": "isp",
+       "label": "default"
+      },
+      {
+       "a": "r1",
+       "b": "lan",
+       "aEnd": "Gi0/0"
+      },
+      {
+       "a": "r1",
+       "b": "r2",
+       "label": "Gi0/1 · 10.0.12.0/30"
+      },
+      {
+       "a": "r1",
+       "b": "r3",
+       "label": "Gi0/2 · 10.0.13.0/30"
+      }
+     ],
+     "caption": "The table above in picture form: R2 is reached over Gi0/1, R3 over Gi0/2 and the ISP through the default route. Both R2 and R3 offer paths into 10.2.0.0, so prefix length decides which one a packet takes."
+    },
+    {
      "type": "callout",
      "kind": "definition",
      "text": "When several routes contain the destination, the router uses the one with the **longest prefix length** (the most specific route), regardless of where it came from. A /25 beats a /24, which beats a /16, which beats the /0 default.",
@@ -4821,6 +6330,41 @@ TRACK.modules.push({
       ]
      ],
      "title": "Longest-prefix match on the table above"
+    },
+    {
+     "type": "tree",
+     "title": "Nested prefixes in R1's table",
+     "root": {
+      "label": "0.0.0.0/0",
+      "text": "Default via 203.0.113.1",
+      "children": [
+       {
+        "label": "10.2.0.0/16",
+        "text": "Static via 10.0.13.2",
+        "children": [
+         {
+          "label": "10.2.20.0/24",
+          "text": "OSPF via 10.0.12.2",
+          "children": [
+           {
+            "label": "10.2.20.128/25",
+            "text": "Static via 10.0.13.2"
+           }
+          ]
+         }
+        ]
+       },
+       {
+        "label": "192.168.10.0/24",
+        "text": "Connected, Gi0/0"
+       },
+       {
+        "label": "10.0.12.0/30, 10.0.13.0/30",
+        "text": "Connected WAN links"
+       }
+      ]
+     },
+     "caption": "Each route sits inside a shorter one. A packet follows the deepest box that still contains its destination: 10.2.20.130 matches all of them and uses the /25, while 10.2.20.50 stops at the /24."
     },
     {
      "type": "table",
@@ -4957,6 +6501,16 @@ TRACK.modules.push({
       }
      ],
      "title": "The unexpected path"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Routes come from connected interfaces, static configuration and dynamic protocols.",
+      "Forwarding always uses the longest matching prefix, whatever its source.",
+      "Administrative distance only compares different sources offering the identical prefix; metric compares paths inside one protocol.",
+      "A router decrements TTL, looks up the destination, resolves the next hop's MAC and builds a new frame."
+     ]
     },
     {
      "type": "quiz",
@@ -5137,6 +6691,77 @@ TRACK.modules.push({
      "note": "Only the AD 1 route appears while it is valid. The trailing `10` raises the backup's AD; to float behind a route learned by OSPF (AD 110), the backup's AD must be higher than 110."
     },
     {
+     "type": "topology",
+     "title": "Primary and floating default routes",
+     "nodes": [
+      {
+       "id": "inet",
+       "kind": "internet",
+       "label": "Internet",
+       "x": 3,
+       "y": 0
+      },
+      {
+       "id": "i1",
+       "kind": "router",
+       "label": "ISP-1",
+       "sub": "203.0.113.1",
+       "x": 1,
+       "y": 1.5
+      },
+      {
+       "id": "i2",
+       "kind": "router",
+       "label": "ISP-2",
+       "sub": "198.51.100.1",
+       "x": 5,
+       "y": 1.5
+      },
+      {
+       "id": "r1",
+       "kind": "router",
+       "label": "R1",
+       "sub": "Branch edge",
+       "x": 3,
+       "y": 3
+      },
+      {
+       "id": "lan",
+       "kind": "host",
+       "label": "Branch LAN",
+       "x": 3,
+       "y": 5
+      }
+     ],
+     "links": [
+      {
+       "a": "i1",
+       "b": "inet"
+      },
+      {
+       "a": "i2",
+       "b": "inet"
+      },
+      {
+       "a": "r1",
+       "b": "i1",
+       "label": "Primary · AD 1",
+       "style": "bold"
+      },
+      {
+       "a": "r1",
+       "b": "i2",
+       "label": "Backup · AD 10",
+       "style": "dashed"
+      },
+      {
+       "a": "r1",
+       "b": "lan"
+      }
+     ],
+     "caption": "Only the AD 1 route is installed while the link to ISP-1 is up. If ISP-1 fails beyond its own router, R1's interface stays up and traffic is black-holed — that is why production designs add reachability tracking."
+    },
+    {
      "type": "callout",
      "kind": "insight",
      "text": "A static route is removed when its exit interface goes down or its next hop becomes unreachable in the table. If the provider fails *beyond* your directly connected link, the interface stays up and the primary route stays — traffic is black-holed. Production designs add **reachability tracking** (probes that remove the route when a far-end test fails) or use a dynamic protocol.",
@@ -5236,6 +6861,17 @@ TRACK.modules.push({
       ]
      ],
      "rows": 8
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Static routes are predictable and free of overhead — ideal for stubs, defaults and backups.",
+      "Default routes are 0.0.0.0/0 and ::/0; IPv6 link-local next hops need the exit interface too.",
+      "A floating static has a higher AD than the route it backs up and appears only when that route disappears.",
+      "Statics only see local failures; add tracking or a dynamic protocol for remote ones.",
+      "Routing must work in both directions — always check the return route."
+     ]
     },
     {
      "type": "quiz",
@@ -5365,6 +7001,67 @@ TRACK.modules.push({
      "title": "Neighbour states from first hello to full adjacency"
     },
     {
+     "type": "sequence",
+     "title": "From first hello to Full",
+     "actors": [
+      "R1 (RID 1.1.1.1)",
+      "R2 (RID 2.2.2.2)"
+     ],
+     "steps": [
+      {
+       "from": 0,
+       "to": 1,
+       "label": "Hello (seen: none)",
+       "note": "R2 moves to Init"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "Hello (seen: 1.1.1.1)",
+       "note": "R1 moves to 2-Way",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "Hello (seen: 2.2.2.2)",
+       "note": "2-Way; DR/BDR chosen if needed"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "DBD: who leads?",
+       "note": "ExStart (MTU checked)",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "DBD: summary of my LSDB",
+       "note": "Exchange"
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "LSR: LSAs I lack",
+       "note": "Loading"
+      },
+      {
+       "from": 1,
+       "to": 0,
+       "label": "LSU: requested LSAs",
+       "reply": true
+      },
+      {
+       "from": 0,
+       "to": 1,
+       "label": "LSAck",
+       "note": "both routers now Full"
+      }
+     ],
+     "caption": "Hello timers, area or authentication mismatches stop the process at the hellos; an MTU mismatch stalls it at ExStart/Exchange. Between two DROTHERs the process deliberately stops at 2-Way."
+    },
+    {
      "type": "table",
      "head": [
       "Parameter",
@@ -5437,6 +7134,71 @@ TRACK.modules.push({
      "kind": "definition",
      "text": "On multi-access segments such as Ethernet, OSPF elects a **designated router (DR)** and a **backup DR (BDR)**. Every other router (a **DROTHER**) forms a full adjacency only with the DR and BDR, not with each other. This cuts the number of adjacencies and LSAs on busy segments.",
      "title": "DR and BDR"
+    },
+    {
+     "type": "topology",
+     "title": "DR and BDR on a shared Ethernet segment",
+     "nodes": [
+      {
+       "id": "r1",
+       "kind": "router",
+       "label": "R1 · DROTHER",
+       "sub": "Pri 1 · RID 1.1.1.1",
+       "x": 1,
+       "y": 0
+      },
+      {
+       "id": "r2",
+       "kind": "router",
+       "label": "R2 · DR",
+       "sub": "Pri 100 · RID 2.2.2.2",
+       "x": 5,
+       "y": 0
+      },
+      {
+       "id": "sw",
+       "kind": "switch",
+       "label": "Shared segment",
+       "sub": "10.0.123.0/24",
+       "x": 3,
+       "y": 2
+      },
+      {
+       "id": "r3",
+       "kind": "router",
+       "label": "R3 · DROTHER",
+       "sub": "Pri 0 · RID 3.3.3.3",
+       "x": 1,
+       "y": 4
+      },
+      {
+       "id": "r4",
+       "kind": "router",
+       "label": "R4 · BDR",
+       "sub": "Pri 1 · RID 4.4.4.4",
+       "x": 5,
+       "y": 4
+      }
+     ],
+     "links": [
+      {
+       "a": "r1",
+       "b": "sw"
+      },
+      {
+       "a": "r2",
+       "b": "sw"
+      },
+      {
+       "a": "r3",
+       "b": "sw"
+      },
+      {
+       "a": "r4",
+       "b": "sw"
+      }
+     ],
+     "caption": "The highest priority wins DR (R2); the next best becomes BDR, where R4 beats R1 on router ID; priority 0 never takes part. R1 and R3 are full neighbours of the DR and BDR only and stay 2-Way with each other."
     },
     {
      "type": "keypoints",
@@ -5534,6 +7296,17 @@ TRACK.modules.push({
       }
      ],
      "title": "Neighbours that never meet"
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "OSPF routers flood LSAs, keep identical LSDBs per area and each run SPF to find lowest-cost paths.",
+      "Area, subnet, hello/dead timers, authentication and area type must match; MTU mismatches stall at ExStart/Exchange.",
+      "Router ID: manual, else highest loopback, else highest active interface — and it changes only on process restart.",
+      "DR/BDR: highest priority, then highest router ID; not pre-emptive; priority 0 never becomes DR.",
+      "Set the same reference bandwidth on every router so fast links get lower costs."
+     ]
     },
     {
      "type": "quiz",
@@ -5675,6 +7448,12 @@ TRACK.modules.push({
      "title": "Options you will use often"
     },
     {
+     "type": "callout",
+     "kind": "insight",
+     "title": "IPv6 uses OSPFv3",
+     "text": "OSPFv3 carries IPv6 prefixes with the same ideas — areas, cost, DR/BDR and a 32-bit router ID. It is enabled per interface (for example `ipv6 ospf 1 area 0`) and forms neighbours over link-local addresses. A dual-stack network runs OSPFv2 and OSPFv3 side by side, or one OSPFv3 instance with IPv4 and IPv6 address families where the platform supports it."
+    },
+    {
      "type": "cli",
      "device": "R1 · IOS-style CLI",
      "lines": [
@@ -5706,6 +7485,112 @@ TRACK.modules.push({
      ],
      "title": "Verifying OSPF routes",
      "note": "Cost 200 = R1's outgoing 1 Gbps link (100) + R2's 1 Gbps LAN interface (100). `show ip protocols` confirms router ID, network statements and passive interfaces."
+    },
+    {
+     "type": "topology",
+     "title": "The single-area OSPF lab",
+     "nodes": [
+      {
+       "id": "inet",
+       "kind": "internet",
+       "label": "Internet",
+       "sub": "Static default on R1",
+       "x": 3,
+       "y": 0
+      },
+      {
+       "id": "lan1",
+       "kind": "switch",
+       "label": "R1 LAN",
+       "sub": "192.168.10.0/24",
+       "x": 1,
+       "y": 1
+      },
+      {
+       "id": "r1",
+       "kind": "router",
+       "label": "R1",
+       "sub": "RID 1.1.1.1",
+       "x": 3,
+       "y": 2
+      },
+      {
+       "id": "r2",
+       "kind": "router",
+       "label": "R2",
+       "sub": "RID 2.2.2.2",
+       "x": 1,
+       "y": 4
+      },
+      {
+       "id": "r3",
+       "kind": "router",
+       "label": "R3",
+       "sub": "RID 3.3.3.3",
+       "x": 5,
+       "y": 4
+      },
+      {
+       "id": "lan2",
+       "kind": "switch",
+       "label": "R2 LAN",
+       "sub": "10.2.20.0/24",
+       "x": 1,
+       "y": 6
+      },
+      {
+       "id": "lan3",
+       "kind": "switch",
+       "label": "R3 LAN",
+       "sub": "10.3.30.0/24",
+       "x": 5,
+       "y": 6
+      }
+     ],
+     "links": [
+      {
+       "a": "r1",
+       "b": "inet",
+       "label": "default-information originate"
+      },
+      {
+       "a": "r1",
+       "b": "lan1",
+       "label": "passive",
+       "aEnd": "Gi0/0"
+      },
+      {
+       "a": "r1",
+       "b": "r2",
+       "label": "P2P 10.0.12.0/30"
+      },
+      {
+       "a": "r1",
+       "b": "r3",
+       "label": "DR/BDR 10.0.13.0/30"
+      },
+      {
+       "a": "r2",
+       "b": "lan2",
+       "label": "passive"
+      },
+      {
+       "a": "r3",
+       "b": "lan3",
+       "label": "passive"
+      }
+     ],
+     "zones": [
+      {
+       "label": "OSPF area 0",
+       "x": 0,
+       "y": 1,
+       "w": 7,
+       "h": 6,
+       "tone": "accent"
+      }
+     ],
+     "caption": "Router-to-router links run OSPF; user LANs are passive, so they are advertised but hear no hellos. R1 originates the default route it holds as a static route toward the ISP, and both other routers learn it as O*E2."
     },
     {
      "type": "steps",
@@ -5788,6 +7673,17 @@ TRACK.modules.push({
      ]
     },
     {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "Enable OSPF with `network` statements (wildcard masks) or per interface with `ip ospf <pid> area <id>`.",
+      "Make user LANs passive and router-to-router Ethernet links point-to-point.",
+      "`default-information originate` shares the edge router's default route with the area.",
+      "Verify in order: interfaces, neighbours, routes, default, then data-plane tests.",
+      "OSPFv3 applies the same design to IPv6."
+     ]
+    },
+    {
      "type": "quiz",
      "items": [
       {
@@ -5867,7 +7763,7 @@ TRACK.modules.push({
     {
      "type": "callout",
      "kind": "definition",
-     "text": "**Virtual Router Redundancy Protocol** (VRRPv3 in RFC 5798, supporting IPv4 and IPv6) is the open-standard FHRP. Routers in a VRRP group share a **virtual IP** and a **virtual MAC**. One router is **master** and answers for the virtual address; the others are **backups** that take over if the master's advertisements stop.",
+     "text": "**Virtual Router Redundancy Protocol** version 3 is the open-standard FHRP for IPv4 and IPv6 (first published as RFC 5798 and updated by RFC 9568 in 2024). Routers in a VRRP group share a **virtual IP** and a **virtual MAC**. One router is **master** and answers for the virtual address; the others are **backups** that take over if the master's advertisements stop.",
      "title": "VRRP"
     },
     {
@@ -5895,6 +7791,94 @@ TRACK.modules.push({
       }
      ],
      "title": "How a VRRP failover unfolds"
+    },
+    {
+     "type": "topology",
+     "title": "A VRRP gateway pair",
+     "nodes": [
+      {
+       "id": "wan",
+       "kind": "cloud",
+       "label": "WAN / Internet",
+       "x": 3,
+       "y": 0
+      },
+      {
+       "id": "r1",
+       "kind": "router",
+       "label": "R1 (master)",
+       "sub": ".2 · priority 110",
+       "x": 1.5,
+       "y": 2
+      },
+      {
+       "id": "vip",
+       "kind": "router",
+       "label": "Virtual router",
+       "sub": "192.168.10.1",
+       "x": 3,
+       "y": 2
+      },
+      {
+       "id": "r2",
+       "kind": "router",
+       "label": "R2 (backup)",
+       "sub": ".3 · priority 100",
+       "x": 4.5,
+       "y": 2
+      },
+      {
+       "id": "sw",
+       "kind": "switch",
+       "label": "SW1",
+       "sub": "VLAN 10",
+       "x": 3,
+       "y": 3.5
+      },
+      {
+       "id": "h",
+       "kind": "host",
+       "label": "Hosts",
+       "sub": "Gateway 192.168.10.1",
+       "x": 3,
+       "y": 5
+      }
+     ],
+     "links": [
+      {
+       "a": "r1",
+       "b": "wan",
+       "label": "tracked uplink",
+       "aEnd": "Gi0/1"
+      },
+      {
+       "a": "r2",
+       "b": "wan"
+      },
+      {
+       "a": "vip",
+       "b": "r1",
+       "style": "dashed"
+      },
+      {
+       "a": "vip",
+       "b": "r2",
+       "style": "dashed"
+      },
+      {
+       "a": "r1",
+       "b": "sw"
+      },
+      {
+       "a": "r2",
+       "b": "sw"
+      },
+      {
+       "a": "sw",
+       "b": "h"
+      }
+     ],
+     "caption": "Hosts only know the virtual address 192.168.10.1 and its virtual MAC (group 10 = 0x0A). R1 answers for it while it is master; if R1 or its tracked uplink fails, R2 takes over and no host setting changes."
     },
     {
      "type": "table",
@@ -6082,6 +8066,17 @@ TRACK.modules.push({
        "term": "VRRP",
        "def": "Open-standard first-hop redundancy protocol that shares a virtual gateway IP between routers."
       }
+     ]
+    },
+    {
+     "type": "keypoints",
+     "title": "Key takeaways",
+     "items": [
+      "An FHRP lets two or more routers share one virtual gateway IP and MAC, so hosts never need reconfiguring.",
+      "VRRP: highest priority becomes master (default 100), preemption is on by default, advertisements go to 224.0.0.18.",
+      "The IPv4 virtual MAC is 00-00-5E-00-01-XX with the group number in hex.",
+      "Track uplinks so a master that has lost its way out hands over to the backup.",
+      "Align the VRRP master with the STP root for each VLAN."
      ]
     },
     {
